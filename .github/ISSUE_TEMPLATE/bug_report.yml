@@ -1,0 +1,95 @@
+name: Bug report
+description: Report a reproducible problem with Quest Home Switcher or the Windows setup.
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve Quest Home Switcher. Please remove serial numbers, account details, signing keys, passwords, and copyrighted Home APKs before attaching anything.
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Affected component
+      options:
+        - Quest Home Switcher app
+        - Windows setup
+        - Home APK importer
+        - Shizuku setup flow
+        - Root mode
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Enter the app or setup version shown on screen.
+      placeholder: "1.3.0"
+    validations:
+      required: true
+
+  - type: input
+    id: headset
+    attributes:
+      label: Headset and Horizon OS
+      placeholder: "Quest 3, Horizon OS v..."
+    validations:
+      required: true
+
+  - type: dropdown
+    id: access_mode
+    attributes:
+      label: Access mode
+      options:
+        - Shizuku
+        - Root / Magisk
+        - Neither / setup did not finish
+        - Not applicable
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Explain what you expected and what happened instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open ...
+        2. Select ...
+        3. Press ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Diagnostics
+      description: Paste relevant on-screen messages or a short, redacted log. Do not include passwords, keys, account data, device serials, or Home APK files.
+      render: text
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional context
+      description: Add a screenshot or short recording if it helps. Confirm that you have the right to share every attached file.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Final checks
+      options:
+        - label: I tested the latest available release.
+          required: true
+        - label: I removed private data, credentials, signing material, and copyrighted Home APKs from this report.
+          required: true

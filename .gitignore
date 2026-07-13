@@ -1,0 +1,53 @@
+# Gradle and Android build state
+**/.gradle/
+**/.kotlin/
+**/build/
+**/release/
+**/local.properties
+
+# IDE and operating-system files
+.idea/
+.vscode/
+.vs/
+*.iml
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Signing material and local secrets
+**/keystore.properties
+*.jks
+*.keystore
+*.p12
+*.pfx
+*.pem
+*.key
+
+# Packaged release artifacts (publish these through GitHub Releases)
+*.apk
+*.aab
+*.apks
+*.exe
+*.msi
+*.dll
+*.pdb
+
+# Windows setup build and verification output
+windows-setup/uiautomator-build/
+windows-setup/exe-verification/
+windows-setup/platform-tools/
+windows-setup/platform-tools.zip
+windows-setup/Quest-Home-Switcher.apk
+windows-setup/Quest-Home-Switcher-Setup.exe
+
+# Local Quest UI hierarchy dumps
+**/qhs*.xml
+**/*qhs*.xml
+**/quest_home_switcher_*.xml
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.log
+~$*

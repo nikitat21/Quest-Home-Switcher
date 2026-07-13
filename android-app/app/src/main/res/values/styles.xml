@@ -1,0 +1,8 @@
+<resources>
+    <style name="Theme.QuestHomeSwitcher" parent="android:style/Theme.Material.NoActionBar">
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowActionBar">false</item>
+        <item name="android:fontFamily">sans</item>
+        <item name="android:colorAccent">#5DD8B3</item>
+    </style>
+</resources>

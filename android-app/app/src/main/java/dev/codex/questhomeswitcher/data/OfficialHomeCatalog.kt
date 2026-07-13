@@ -1,0 +1,95 @@
+package dev.codex.questhomeswitcher.data
+
+/** Names used by Meta for the retired official Quest Home environments. */
+internal object OfficialHomeCatalog {
+    private val packageNames = mapOf(
+        "com.meta.environment.prod.bluehillgoldmine" to "Blue Hill Gold Mine",
+        "com.meta.environment.prod.futurescape" to "Futurescape",
+        "com.meta.environment.prod.lakesidepeak" to "Lakeside Peak",
+        "com.meta.environment.prod.monolith" to "Crystal Atrium",
+        "com.meta.environment.prod.polarvillage" to "Polar Village",
+        "com.meta.environment.prod.stinson.launchpad" to "Meta Horizon Terrace",
+        "com.meta.environment.prod.storybook" to "Storybook",
+        "com.meta.environment.prod.treehouse" to "Paradiso",
+        "com.meta.environment.prod.underwater" to "Oceanarium",
+        "com.meta.environment.prod.vista" to "Cascadia",
+        "com.oculus.environment.prod.cyberhome" to "Cyber City",
+        "com.oculus.environment.prod.dome" to "Quest Dome",
+        "com.oculus.environment.prod.japan" to "Mogu Hall",
+        "com.oculus.environment.prod.personaloffice01" to "Studio",
+        "com.oculus.environment.prod.personaloffice02" to "Mountain Study",
+        "com.oculus.environment.prod.rifthome" to "Classic Home",
+        "com.environment.winterloft" to "Winter Lodge",
+        "com.environment.oculusoriginaldesert" to "Desert Terrace",
+        "com.environment.spacestation" to "Space Station",
+    )
+
+    private fun hashes(name: String, vararg values: String): List<Pair<String, String>> =
+        values.map { it.lowercase() to name }
+
+    private val sceneHashes = mapOf(
+        *hashes("Blue Hill Gold Mine",
+            "33139012EDB50FF352DA4EC1BF357DABB03422F48BD418DADF0093911F076E91",
+            "93E106293F6773724974E63D4033ED14FAB7B09ABFDCC6ED868030A598D2D22A").toTypedArray(),
+        *hashes("Futurescape",
+            "0CD9414EBECD731E9F3B10BCB0803E1F1F4A4F1EF9155D4770B96505FB01D59D",
+            "F4AB2140838BA626A29E5C0CF3A74195DD24E70A71FFECA6D6C7DEE52A0E4E92",
+            "2BDF76BA5DCCDFCE6DB460A3FD2422F6AC617A1F55CF129ABC5D6D0257C7EE53").toTypedArray(),
+        *hashes("Lakeside Peak",
+            "3241C2572373E8F5DD400D4E0B905831C3CD0AD4CE81C5EDEEC1F046887A3683",
+            "1C1D3F7857E868F793AF3BBDD663B2DCBCC535E4436EDE5677FB1FC3563DBE46").toTypedArray(),
+        *hashes("Crystal Atrium",
+            "1738D80E3A648F0EF73E304FD423B48F68A6C946B278DEAF9D19BF1CE1DD95DE",
+            "3C16539B821D57C5704A56296B4C6CA22CFBE729BCC792C27B956718657857EC",
+            "49B5AB47D0758B98E6CBEAD24587A35FE2C8EA7A432CAA643C8FF79218D69A17",
+            "911874E0B007B52DCABB45E32D9D6137BCEE13D70251AAB863DA937D13724E98").toTypedArray(),
+        *hashes("Polar Village",
+            "424BA6214BEA34F9C3132F2A1AE5ED3B6EFE4E216960212204AE32592C7405C6",
+            "11DDC60749C7EA85762C0674A9AD981C2A23B1084C9AC134010FE18D664D6BE4",
+            "FAA75A4C7404112040C6945DE4DDECF259FE975883BC10A7CA832843F4256FF5").toTypedArray(),
+        *hashes("Meta Horizon Terrace",
+            "E150A68CF9CC9D5CF7529F7910DCDC90554D1B4DE1F992FB57CDF688CF4E83FE",
+            "412FFD70126CAE8DACA3907A3978EB8734B6C48EC3B89509979CAD70A3A681B6").toTypedArray(),
+        *hashes("Storybook", "34A8D3533E665DF8E920077531DAAE23A1C27116559C3EDE842FFEB64162F0F3").toTypedArray(),
+        *hashes("Paradiso",
+            "FFC143F40A80B9A10B02AF110E07BFAFB1B65EF40C44054D8B3DA67010697475",
+            "3B6211A19E9BFCC5114957B44C30C4647F0A298EA68EAB965257D42E8C3C4130",
+            "6D07BC945A7FFD48AD9F4C33F8A65307572B0C1F301049A8D093F182DB810CAF").toTypedArray(),
+        *hashes("Oceanarium", "024188D0E0BE1A2788AFC8917419C16FD202231FBB2944C939E725885A7768C5").toTypedArray(),
+        *hashes("Cascadia",
+            "B4B6367659321E366DC32A368A001C1B8B6DBDDBB626A5909C1061E066E7501E",
+            "04A3E64076B297CF7A2F58206BB0C30890863D6CF8CA9F4053E45EADA035E78C",
+            "A26FE53836D91F30B6E4BF2154213783B7D55B7B2105AE9356F7E6E878A20D73").toTypedArray(),
+        *hashes("Cyber City",
+            "34288D09200710F6CE53610192FB7EB07E4849ACAA37A85DA9B6C13AE8821662",
+            "3C8D7CF57DBF6949A486F2FED4B6160E3FB3AEC96DBFE2BCC68594122A3560E9",
+            "0202C7BC3BF03102E1093211DE17BF96F65F3D8794E63C662E4B34A61C3A5E3F").toTypedArray(),
+        *hashes("Quest Dome",
+            "8E105686424230AE534FD8CC43E6E43C5005AF551356DB3EECD9FFD131BB37E4",
+            "3CA225FC87E55DF7C5DE8BA68596D6B8104AF8768D488112AFB57A32F3AEDC47",
+            "A56C71705976A4DB5D3016E2FF6CFE881770014B8E64359DD7F623DBEB4A7133",
+            "7B125CAD02F8D218D4B98D30BD9F33C0339E0AA53BC45852642598E5DE80D140").toTypedArray(),
+        *hashes("Mogu Hall",
+            "8F3546EE7A8981587A9EB0B670AB3AD057BE88A56276980CFF3FEF43D6BBC668",
+            "BDA6A7F54BF28FDCCF4B64A2949119CACC62D0B3BB121A6137725C9203E312C2").toTypedArray(),
+        *hashes("Studio",
+            "2D688323FDEBF6280291BBF8C65CD2A2DB87CC00B86499347A8DA7C9C066DDCB",
+            "C0C710B4A26BB746B61A6CE3B2D0E00730037D38EA0974F88A5C441C037F645F").toTypedArray(),
+        *hashes("Mountain Study",
+            "FACFF2C0E16D1196A49D5EA55E2A9DE7856807274B438C7CDBB9D5AD7EC53E91",
+            "22BCDAE4343AE3609B20FC464480CDAF0886DC45BDBE4A408A66573CD0D96F29").toTypedArray(),
+        *hashes("Classic Home",
+            "8EE66163A7C99204F6613F9C42679CB397C36B2D79E37B0DB0AA23723D263A3E",
+            "A58CFECE0F04E66C23641113561058EDB7A7F19362E184A7B136A67D51074C7E",
+            "F2C091140A5F0B8A98D7D8DB1368455E6DE4048AD780103760E924ACEA72AD43").toTypedArray(),
+        *hashes("Winter Lodge", "36FE9E252E9535391C288842B3819891910F139565035E9FDDA1CDE04F6EEF00").toTypedArray(),
+        *hashes("Desert Terrace", "2509E83C772751604631C58BA92539FA8BE5600D32F8E6365DDBD78C4A291BEA").toTypedArray(),
+        *hashes("Space Station", "D1ADE12BE1DC6989436EF4ACD766656A614AC5A0AFB144207C10F3A7666BB5B6").toTypedArray(),
+        *hashes("Meta Home (System)", "8503FC8D849068116C313B761516DC32FC87C6B452F3099E07BD5BFE6A376EBD").toTypedArray(),
+    )
+
+    fun resolve(packageName: String?, sceneHash: String?, fallback: String): String =
+        sceneHash?.let { sceneHashes[it.lowercase()] }
+            ?: packageName?.let { packageNames[it.lowercase()] }
+            ?: fallback
+}

@@ -1,0 +1,21 @@
+# Android Studio and local machine settings
+.gradle/
+.idea/
+.kotlin/
+local.properties
+keystore.properties
+*.jks
+*.keystore
+
+# Generated build output
+build/
+**/build/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Local release packages
+release/
+*.apk
+*.aab
