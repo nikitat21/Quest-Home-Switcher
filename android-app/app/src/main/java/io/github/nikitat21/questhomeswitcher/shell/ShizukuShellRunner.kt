@@ -1,4 +1,4 @@
-package dev.codex.questhomeswitcher.shell
+package io.github.nikitat21.questhomeswitcher.shell
 
 import android.content.pm.PackageManager
 import android.util.Log

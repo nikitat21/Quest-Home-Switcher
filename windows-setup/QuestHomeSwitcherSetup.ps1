@@ -17,14 +17,16 @@ $script:SetupComplete = $false
 
 $script:ShizukuPackage = 'moe.shizuku.privileged.api'
 $script:ShizukuActivity = 'moe.shizuku.privileged.api/moe.shizuku.manager.MainActivity'
-$script:SwitcherPackage = 'dev.codex.questhomeswitcher'
-$script:SwitcherActivity = 'dev.codex.questhomeswitcher/.MainActivity'
+$script:SwitcherPackage = 'io.github.nikitat21.questhomeswitcher'
+$script:SwitcherActivity = 'io.github.nikitat21.questhomeswitcher/.MainActivity'
+$script:LegacySwitcherPackage = 'dev.codex.questhomeswitcher'
 $script:SwitcherApk = Join-Path $script:DistributionRoot 'Quest-Home-Switcher.apk'
-$script:ExpectedSwitcherVersionCode = 12
-$script:ExpectedSwitcherVersionName = '1.3.0'
-$script:ExpectedSwitcherSha256 = 'A500F308DB4B997BC8BE8C555963D76B201114FF04F39790C50288CAEF7B34F8'
+$script:ExpectedSwitcherVersionCode = 13
+$script:ExpectedSwitcherVersionName = '1.0'
+$script:ExpectedSwitcherSha256 = '57398CD94654694FDCFF01B7C73F190D4B8E6F96234CD5BDB7FC21C3328A3F17'
 $script:HomePackageIdentifier = 'com.meta.shell.env.footprint.haven2025'
 $script:HomeImportDirectory = '/sdcard/Download/Quest Homes'
+$script:HomeImportHistoryFile = Join-Path $script:RuntimeRoot 'home-import-directory.txt'
 $script:OfficialHomeSceneCatalog = @{
     '33139012EDB50FF352DA4EC1BF357DABB03422F48BD418DADF0093911F076E91' = 'Blue Hill Gold Mine'
     '93E106293F6773724974E63D4033ED14FAB7B09ABFDCC6ED868030A598D2D22A' = 'Blue Hill Gold Mine'
@@ -70,6 +72,167 @@ $script:OfficialHomeSceneCatalog = @{
     '2509E83C772751604631C58BA92539FA8BE5600D32F8E6365DDBD78C4A291BEA' = 'Desert Terrace'
     'D1ADE12BE1DC6989436EF4ACD766656A614AC5A0AFB144207C10F3A7666BB5B6' = 'Space Station'
     '8503FC8D849068116C313B761516DC32FC87C6B452F3099E07BD5BFE6A376EBD' = 'Meta Home (System)'
+}
+
+function Resolve-ExistingDirectory([string]$Path) {
+    if ([string]::IsNullOrWhiteSpace($Path)) { return $null }
+    try {
+        $expanded = [Environment]::ExpandEnvironmentVariables($Path.Trim())
+        if (-not [System.IO.Path]::IsPathRooted($expanded)) { return $null }
+        $item = Get-Item -LiteralPath ([System.IO.Path]::GetFullPath($expanded)) -Force -ErrorAction Stop
+        if ($item.PSIsContainer) { return $item.FullName }
+    } catch {}
+    return $null
+}
+
+function Get-DownloadsDirectory {
+    try {
+        $key = Get-Item -LiteralPath 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders' -ErrorAction Stop
+        $raw = $key.GetValue('{374DE290-123F-4565-9164-39C4925E467B}', $null, [Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames)
+        $resolved = Resolve-ExistingDirectory ([Environment]::ExpandEnvironmentVariables([string]$raw))
+        if ($resolved) { return $resolved }
+    } catch {}
+
+    $profileDownloads = if ($env:USERPROFILE) { Join-Path $env:USERPROFILE 'Downloads' } else { $null }
+    return Resolve-ExistingDirectory $profileDownloads
+}
+
+function Get-DefaultHomeImportSearchRoots {
+    $roots = New-Object System.Collections.Generic.List[string]
+    $seen = New-Object 'System.Collections.Generic.HashSet[string]' ([System.StringComparer]::OrdinalIgnoreCase)
+    $addRoot = {
+        param([string]$Candidate)
+        $resolved = Resolve-ExistingDirectory $Candidate
+        if ($resolved -and $seen.Add($resolved)) { $roots.Add($resolved) }
+    }
+
+    foreach ($seed in @($script:DistributionRoot, $script:ToolRoot)) {
+        $current = Resolve-ExistingDirectory $seed
+        for ($level = 0; $current -and $level -lt 8; $level++) {
+            & $addRoot $current
+            $parent = Split-Path -Parent $current
+            if (-not $parent -or $parent -eq $current) { break }
+            $current = $parent
+        }
+    }
+
+    & $addRoot (Get-DownloadsDirectory)
+    & $addRoot ([Environment]::GetFolderPath([Environment+SpecialFolder]::DesktopDirectory))
+    & $addRoot ([Environment]::GetFolderPath([Environment+SpecialFolder]::MyDocuments))
+    & $addRoot $env:USERPROFILE
+
+    try {
+        foreach ($drive in [System.IO.DriveInfo]::GetDrives()) {
+            if ($drive.IsReady -and $drive.DriveType -eq [System.IO.DriveType]::Fixed) {
+                & $addRoot $drive.RootDirectory.FullName
+            }
+        }
+    } catch {}
+
+    return [string[]]$roots.ToArray()
+}
+
+function Find-HomeEditorCookedDirectory([string[]]$Roots) {
+    $knownRelativePaths = @(
+        'cooked',
+        'Quest Home Editor\cooked',
+        'Quest-Home-Editor\cooked',
+        'custom home tool\cooked',
+        'Custom Home Tool\cooked'
+    )
+
+    foreach ($root in $Roots) {
+        $resolvedRoot = Resolve-ExistingDirectory $root
+        if (-not $resolvedRoot) { continue }
+        if ([System.IO.Path]::GetFileName($resolvedRoot.TrimEnd([System.IO.Path]::DirectorySeparatorChar)) -ieq 'cooked') {
+            return $resolvedRoot
+        }
+        foreach ($relativePath in $knownRelativePaths) {
+            $candidate = Resolve-ExistingDirectory (Join-Path $resolvedRoot $relativePath)
+            if ($candidate) { return $candidate }
+        }
+    }
+
+    # Detect versioned or renamed editor folders without recursively scanning a whole drive.
+    foreach ($root in $Roots) {
+        $resolvedRoot = Resolve-ExistingDirectory $root
+        if (-not $resolvedRoot) { continue }
+        try {
+            foreach ($child in Get-ChildItem -LiteralPath $resolvedRoot -Directory -Force -ErrorAction Stop) {
+                if ($child.Attributes -band [System.IO.FileAttributes]::ReparsePoint) { continue }
+                if ($child.Name -notmatch '(?i)(quest.*home.*editor|custom.*home.*tool|quest.*home.*tool)') { continue }
+                $candidate = Resolve-ExistingDirectory (Join-Path $child.FullName 'cooked')
+                if ($candidate) { return $candidate }
+            }
+        } catch {}
+    }
+    return $null
+}
+
+function Read-HomeImportDirectory([string]$HistoryFile = $script:HomeImportHistoryFile) {
+    if ([string]::IsNullOrWhiteSpace($HistoryFile) -or -not (Test-Path -LiteralPath $HistoryFile -PathType Leaf)) { return $null }
+    try {
+        $value = [System.IO.File]::ReadAllText($HistoryFile).Trim()
+        if ($value.Length -gt 32768) { return $null }
+        return Resolve-ExistingDirectory $value
+    } catch {
+        return $null
+    }
+}
+
+function Save-HomeImportDirectory([string]$SelectedPath, [string]$HistoryFile = $script:HomeImportHistoryFile) {
+    try {
+        if ([string]::IsNullOrWhiteSpace($SelectedPath) -or [string]::IsNullOrWhiteSpace($HistoryFile)) { return $false }
+        $selectedItem = Get-Item -LiteralPath $SelectedPath -Force -ErrorAction Stop
+        $directory = if ($selectedItem.PSIsContainer) { $selectedItem.FullName } else { $selectedItem.DirectoryName }
+        $directory = Resolve-ExistingDirectory $directory
+        if (-not $directory) { return $false }
+
+        $historyParent = Split-Path -Parent ([System.IO.Path]::GetFullPath($HistoryFile))
+        if (-not $historyParent) { return $false }
+        New-Item -ItemType Directory -Path $historyParent -Force | Out-Null
+        $temporaryFile = "$HistoryFile.$PID.tmp"
+        try {
+            [System.IO.File]::WriteAllText($temporaryFile, $directory, (New-Object System.Text.UTF8Encoding($false)))
+            Move-Item -LiteralPath $temporaryFile -Destination $HistoryFile -Force
+        } finally {
+            if (Test-Path -LiteralPath $temporaryFile) { Remove-Item -LiteralPath $temporaryFile -Force -ErrorAction SilentlyContinue }
+        }
+        return $true
+    } catch {
+        # A local convenience preference must never block Home validation or upload.
+        return $false
+    }
+}
+
+function Get-HomeImportInitialDirectory(
+    [string[]]$SearchRoots,
+    [string]$HistoryFile = $script:HomeImportHistoryFile,
+    [string]$DownloadsPath
+) {
+    $remembered = Read-HomeImportDirectory $HistoryFile
+    if ($remembered -and [System.IO.Path]::GetFileName($remembered.TrimEnd([System.IO.Path]::DirectorySeparatorChar)) -ieq 'cooked') {
+        return $remembered
+    }
+
+    if (-not $PSBoundParameters.ContainsKey('SearchRoots')) {
+        $SearchRoots = Get-DefaultHomeImportSearchRoots
+    }
+    $cooked = Find-HomeEditorCookedDirectory $SearchRoots
+    if ($cooked) { return $cooked }
+    if ($remembered) { return $remembered }
+
+    if (-not $PSBoundParameters.ContainsKey('DownloadsPath')) {
+        $DownloadsPath = Get-DownloadsDirectory
+    }
+    $downloads = Resolve-ExistingDirectory $DownloadsPath
+    if ($downloads) { return $downloads }
+
+    foreach ($root in $SearchRoots) {
+        $fallback = Resolve-ExistingDirectory $root
+        if ($fallback) { return $fallback }
+    }
+    return Resolve-ExistingDirectory $env:USERPROFILE
 }
 
 function Find-Adb {
@@ -431,7 +594,23 @@ function Invoke-SwitcherSignatureMigration([string]$Serial, [scriptblock]$Status
     }
 }
 
-function Ensure-SwitcherInstalled([string]$Serial, [scriptblock]$Status, [scriptblock]$ConfirmMigration) {
+function Remove-LegacySwitcherIfPresent([string]$Serial, [scriptblock]$Status, [scriptblock]$ConfirmLegacyRemoval) {
+    $legacy = Get-PackageInfo $Serial $script:LegacySwitcherPackage
+    if (-not $legacy.Installed) { return $false }
+    if (-not $ConfirmLegacyRemoval -or -not (& $ConfirmLegacyRemoval $legacy)) { return $false }
+
+    & $Status 'Removing the verified legacy Switcher duplicate...' 93
+    $remove = Invoke-Adb @('-s', $Serial, 'uninstall', $script:LegacySwitcherPackage) -AllowFailure
+    if ($remove.ExitCode -ne 0 -or $remove.Output -notmatch '(?m)^Success\s*$') {
+        throw "Quest Home Switcher is installed, but Android could not remove the legacy duplicate. Shizuku and Home APK files were not touched.`n`n$($remove.Output)"
+    }
+    if ((Get-PackageInfo $Serial $script:LegacySwitcherPackage).Installed) {
+        throw 'Android reported success, but the legacy Quest Home Switcher duplicate is still installed.'
+    }
+    return $true
+}
+
+function Ensure-SwitcherInstalled([string]$Serial, [scriptblock]$Status, [scriptblock]$ConfirmMigration, [scriptblock]$ConfirmLegacyRemoval) {
     & $Status 'Checking the Quest Home Switcher package...' 74
     Test-SwitcherPayload | Out-Null
     $state = Get-SwitcherState $Serial
@@ -452,6 +631,7 @@ function Ensure-SwitcherInstalled([string]$Serial, [scriptblock]$Status, [script
     if ($verified.State -ne 'Current') {
         throw 'Quest Home Switcher installation could not be verified.'
     }
+    Remove-LegacySwitcherIfPresent $Serial $Status $ConfirmLegacyRemoval | Out-Null
     return $verified
 }
 
@@ -844,9 +1024,9 @@ function Send-HomeApk([string]$Serial, [string]$LocalPath, [string]$DesiredName)
     return [pscustomobject]@{ Status='Uploaded'; Local=$localFile.Name; Remote=$target.Name; Verification=$verification }
 }
 
-function Invoke-SwitcherFastMode([scriptblock]$Status, [scriptblock]$ConfirmMigration) {
+function Invoke-SwitcherFastMode([scriptblock]$Status, [scriptblock]$ConfirmMigration, [scriptblock]$ConfirmLegacyRemoval) {
     $quest = Get-ReadyQuest $Status
-    $installed = Ensure-SwitcherInstalled $quest.Serial $Status $ConfirmMigration
+    $installed = Ensure-SwitcherInstalled $quest.Serial $Status $ConfirmMigration $ConfirmLegacyRemoval
     Start-Switcher $quest.Serial $Status
     return $installed
 }
@@ -900,7 +1080,7 @@ Add-Type -AssemblyName PresentationFramework, PresentationCore, WindowsBase
 
     <StackPanel>
       <Border Background="#17372F" BorderBrush="#2B806A" BorderThickness="1" Padding="10,5" HorizontalAlignment="Left">
-        <TextBlock Text="QUEST HOME SWITCHER SETUP 1.3" Foreground="#65E9C0" FontSize="12" FontWeight="Bold"/>
+        <TextBlock Text="QUEST HOME SWITCHER SETUP 1.0" Foreground="#65E9C0" FontSize="12" FontWeight="Bold"/>
       </Border>
       <TextBlock Text="One setup. One clear result." FontSize="34" FontWeight="Bold" Margin="0,14,0,6"/>
       <TextBlock Text="Detects your Quest and Shizuku state, installs the Home Switcher, then opens it for you." Foreground="#AEB9C9" FontSize="17"/>
@@ -956,8 +1136,10 @@ if ($SelfTest) {
         'Get-ShizukuState','Get-SwitcherState','Get-Shizuku117Apk','Get-LatestShizukuApk',
         'Enable-AndroidDeveloperOptions','Open-QuestWirelessDebugging','Open-ShizukuManager',
         'Install-PairingVersion','Update-ShizukuAfterPairing','Try-StartInstalledShizuku',
-        'Test-SwitcherPayload','Invoke-SwitcherSignatureMigration','Ensure-SwitcherInstalled','Start-Switcher',
+        'Test-SwitcherPayload','Invoke-SwitcherSignatureMigration','Remove-LegacySwitcherIfPresent','Ensure-SwitcherInstalled','Start-Switcher',
         'Test-ByteSequence','Read-ZipEntryBytes','Get-ZipEntrySha256','ConvertTo-ReadableHomeName','Test-HomeApk',
+        'Resolve-ExistingDirectory','Get-DownloadsDirectory','Get-DefaultHomeImportSearchRoots',
+        'Find-HomeEditorCookedDirectory','Read-HomeImportDirectory','Save-HomeImportDirectory','Get-HomeImportInitialDirectory',
         'ConvertTo-SafeApkName','Add-ApkNameSuffix','New-HomeImportReviewItems','Test-HomeImportReviewNames',
         'New-HomeImportReviewWindow','Show-HomeImportReview',
         'ConvertTo-RemoteShellLiteral','Ensure-RemoteImportDirectory','Test-RemoteFileExists',
@@ -1035,6 +1217,18 @@ if ($SelfTest) {
         if ((Add-ApkNameSuffix 'My Home.apk' 2) -ne 'My Home-2.apk') { throw 'Self-test failed: collision suffix.' }
         if ((ConvertTo-SafeApkName 'C:\Unsafe\..apk') -ne 'Quest Home.apk') { throw 'Self-test failed: empty-name fallback.' }
 
+        $pickerRoot = Join-Path $apkTestRoot 'picker'
+        $editorCooked = Join-Path $pickerRoot 'Quest Home Editor\cooked'
+        $pickerFallback = Join-Path $pickerRoot 'fallback'
+        $pickerHistory = Join-Path $pickerRoot 'state\home-import-directory.txt'
+        New-Item -ItemType Directory -Force -Path $editorCooked, $pickerFallback | Out-Null
+        if ((Find-HomeEditorCookedDirectory @($pickerRoot)) -ne $editorCooked) { throw 'Self-test failed: Quest Home Editor cooked folder detection.' }
+        if (-not (Save-HomeImportDirectory $validUtf8 $pickerHistory)) { throw 'Self-test failed: Home import directory preference save.' }
+        if ((Read-HomeImportDirectory $pickerHistory) -ne $apkTestRoot) { throw 'Self-test failed: Home import directory preference read.' }
+        if ((Get-HomeImportInitialDirectory -SearchRoots @($pickerRoot) -HistoryFile $pickerHistory -DownloadsPath $pickerFallback) -ne $editorCooked) { throw 'Self-test failed: detected cooked folder was not preferred over a non-cooked history path.' }
+        if (-not (Save-HomeImportDirectory $editorCooked $pickerHistory)) { throw 'Self-test failed: remembered cooked directory save.' }
+        if ((Get-HomeImportInitialDirectory -SearchRoots @($pickerFallback) -HistoryFile $pickerHistory -DownloadsPath $pickerFallback) -ne $editorCooked) { throw 'Self-test failed: remembered cooked folder was not restored.' }
+
         $reviewSource = @(
             [pscustomobject]@{ Name='one.apk'; DisplayName='Same Home'; SuggestedTargetName='Same Home.apk'; Kind='Custom Home'; Path='C:\one.apk'; SceneHash='AAAAAAAAAAAA'; KnownOfficial=$false },
             [pscustomobject]@{ Name='two.apk'; DisplayName='Same Home'; SuggestedTargetName='Same Home.apk'; Kind='Official Meta Home'; Path='C:\two.apk'; SceneHash='BBBBBBBBBBBB'; KnownOfficial=$true }
@@ -1090,17 +1284,17 @@ if ($SelfTest) {
             } elseif ($joined -match 'cat /proc/4321/status') {
                 $uid = if ($script:MockDeviceCase -eq 'InvalidUid') { '1000' } else { '2000' }
                 $mockOutput = "Name:`tmain`nUid:`t$uid`t$uid`t$uid`t$uid"
-            } elseif ($joined -match 'pm path dev\.codex\.questhomeswitcher') {
+            } elseif ($joined -match 'pm path io\.github\.nikitat21\.questhomeswitcher') {
                 $mockOutput = 'package:/data/app/mock/switcher/base.apk'
-            } elseif ($joined -match 'dumpsys package dev\.codex\.questhomeswitcher') {
+            } elseif ($joined -match 'dumpsys package io\.github\.nikitat21\.questhomeswitcher') {
                 if ($script:MockSwitcherCase -eq 'SameCodeWrongName') {
-                    $mockOutput = "  versionCode=12 minSdk=29`n  versionName=unrelated-test-build"
+                    $mockOutput = "  versionCode=13 minSdk=29`n  versionName=unrelated-test-build"
                 } elseif ($script:MockSwitcherCase -eq 'Newer') {
-                    $mockOutput = "  versionCode=13 minSdk=29`n  versionName=future-release"
+                    $mockOutput = "  versionCode=14 minSdk=29`n  versionName=future-release"
                 } elseif ($script:MockSwitcherCase -eq 'Legacy') {
-                    $mockOutput = "  versionCode=10 minSdk=29`n  versionName=1.2.7-shizuku-refresh-fix"
+                    $mockOutput = "  versionCode=12 minSdk=29`n  versionName=legacy-test-build"
                 } else {
-                    $mockOutput = "  versionCode=12 minSdk=29`n  versionName=1.3.0"
+                    $mockOutput = "  versionCode=13 minSdk=29`n  versionName=1.0"
                 }
             }
 
@@ -1191,7 +1385,7 @@ if ($SelfTest) {
         Set-Item Function:Get-SwitcherState -Value {
             param([string]$Serial)
             if ($script:MigrationPhase -eq 'After') {
-                return [pscustomobject]@{ State='Current'; Version='1.3.0'; VersionCode=11; Detail='mock current' }
+                return [pscustomobject]@{ State='Current'; Version='1.0'; VersionCode=11; Detail='mock current' }
             }
             return [pscustomobject]@{ State='Outdated'; Version='1.2.7-debug'; VersionCode=10; Detail='mock debug build' }
         }
@@ -1202,7 +1396,7 @@ if ($SelfTest) {
             if ($joined -match ' install -r ') {
                 return [pscustomobject]@{ ExitCode=1; Output='Failure [INSTALL_FAILED_UPDATE_INCOMPATIBLE: signatures do not match]' }
             }
-            if ($joined -match ' uninstall dev\.codex\.questhomeswitcher$') {
+            if ($joined -match ' uninstall io\.github\.nikitat21\.questhomeswitcher$') {
                 return [pscustomobject]@{ ExitCode=0; Output='Success' }
             }
             if ($joined -match ' install ' -and $joined -notmatch ' install -r ') {
@@ -1216,7 +1410,7 @@ if ($SelfTest) {
         $migrated = Invoke-SwitcherFastMode $migrationStatus { $true }
         if ($migrated.State -ne 'Current') { throw 'Self-test failed: approved signature migration did not verify.' }
         $uninstallCommands = @($script:MigrationCommands | Where-Object { $_ -match ' uninstall ' })
-        if ($uninstallCommands.Count -ne 1 -or $uninstallCommands[0] -notmatch ' uninstall dev\.codex\.questhomeswitcher$') { throw 'Self-test failed: migration uninstall package scope.' }
+        if ($uninstallCommands.Count -ne 1 -or $uninstallCommands[0] -notmatch ' uninstall io\.github\.nikitat21\.questhomeswitcher$') { throw 'Self-test failed: migration uninstall package scope.' }
         if (@($script:MigrationCommands | Where-Object { $_ -match '(?i)shizuku' }).Count -ne 0) { throw 'Self-test failed: signature migration touched Shizuku.' }
         if ($script:MigrationShizukuCalls -ne 0) { throw 'Self-test failed: signature migration or Fast Mode inspected Shizuku.' }
         if ($script:MigrationSwitcherStarts -ne 1) { throw 'Self-test failed: migrated Switcher did not open.' }
@@ -1230,6 +1424,43 @@ if ($SelfTest) {
         if ($script:MigrationShizukuCalls -ne 0 -or $script:MigrationSwitcherStarts -ne 1) { throw 'Self-test failed: rejected Fast Mode migration caused a side effect.' }
     } finally {
         foreach ($entry in $migrationOriginals.GetEnumerator()) {
+            Set-Item "Function:$($entry.Key)" -Value $entry.Value
+        }
+    }
+
+    $legacyCleanupOriginals = @{
+        'Get-PackageInfo' = (Get-Item Function:Get-PackageInfo).ScriptBlock
+        'Invoke-Adb' = (Get-Item Function:Invoke-Adb).ScriptBlock
+    }
+    try {
+        $script:LegacyMockInstalled = $true
+        $script:LegacyCleanupCommands = New-Object System.Collections.Generic.List[string]
+        Set-Item Function:Get-PackageInfo -Value {
+            param([string]$Serial, [string]$PackageName)
+            if ($PackageName -ne $script:LegacySwitcherPackage) { throw 'Legacy cleanup inspected an unrelated package.' }
+            return [pscustomobject]@{ Installed=$script:LegacyMockInstalled; VersionName='0.9-test'; VersionCode=9 }
+        }
+        Set-Item Function:Invoke-Adb -Value {
+            param([string[]]$Arguments, [switch]$AllowFailure)
+            $joined = $Arguments -join ' '
+            $script:LegacyCleanupCommands.Add($joined)
+            if ($joined -match ' uninstall dev\.codex\.questhomeswitcher$') {
+                $script:LegacyMockInstalled = $false
+                return [pscustomobject]@{ ExitCode=0; Output='Success' }
+            }
+            return [pscustomobject]@{ ExitCode=1; Output='unexpected mock command' }
+        }
+        $legacyStatus = { param([string]$Text, [int]$Percent) }
+        if (-not (Remove-LegacySwitcherIfPresent 'MOCK' $legacyStatus { param($Package) $true })) { throw 'Self-test failed: approved legacy Switcher cleanup.' }
+        $legacyUninstalls = @($script:LegacyCleanupCommands | Where-Object { $_ -match ' uninstall ' })
+        if ($legacyUninstalls.Count -ne 1 -or $legacyUninstalls[0] -notmatch ' uninstall dev\.codex\.questhomeswitcher$') { throw 'Self-test failed: legacy cleanup package scope.' }
+
+        $script:LegacyMockInstalled = $true
+        $script:LegacyCleanupCommands.Clear()
+        if (Remove-LegacySwitcherIfPresent 'MOCK' $legacyStatus { param($Package) $false }) { throw 'Self-test failed: rejected legacy cleanup result.' }
+        if ($script:LegacyCleanupCommands.Count -ne 0 -or -not $script:LegacyMockInstalled) { throw 'Self-test failed: rejected legacy cleanup changed the device.' }
+    } finally {
+        foreach ($entry in $legacyCleanupOriginals.GetEnumerator()) {
             Set-Item "Function:$($entry.Key)" -Value $entry.Value
         }
     }
@@ -1285,7 +1516,7 @@ if ($SelfTest) {
         }
     }
 
-    Write-Output 'SELF_TEST_OK_XAML_OK_PAYLOAD_OK_STATE_MACHINE_OK_HOME_IMPORT_OK_PROFESSIONAL_NAMING_OK_SIGNATURE_MIGRATION_OK_FAST_MODES_NO_SHIZUKU_OK'
+    Write-Output 'SELF_TEST_OK_XAML_OK_PAYLOAD_OK_STATE_MACHINE_OK_HOME_IMPORT_OK_COOKED_PICKER_OK_PROFESSIONAL_NAMING_OK_SIGNATURE_MIGRATION_OK_LEGACY_CLEANUP_OK_FAST_MODES_NO_SHIZUKU_OK'
     exit 0
 }
 
@@ -1312,7 +1543,7 @@ $updateStatus = {
 }
 
 $confirmSwitcherMigration = {
-    $message = "Android found an older Quest Home Switcher signed with a different test key.`n`nTo install the permanently signed version, setup must remove ONLY the old app package dev.codex.questhomeswitcher and then install the new one.`n`nThis clears the old Switcher app settings. It does NOT uninstall or change Shizuku, Shizuku pairing, or Home APK files in Download/Quest Homes.`n`nReplace the old Quest Home Switcher now?"
+    $message = "Android found a Quest Home Switcher build signed with a different test key.`n`nTo install the release build, setup must remove ONLY the current Quest Home Switcher app and then install the verified replacement.`n`nThis clears the old Switcher app settings. It does NOT uninstall or change Shizuku, Shizuku pairing, or Home APK files in Download/Quest Homes.`n`nReplace the incompatible Quest Home Switcher now?"
     $choice = [System.Windows.MessageBox]::Show(
         $window,
         $message,
@@ -1320,6 +1551,21 @@ $confirmSwitcherMigration = {
         [System.Windows.MessageBoxButton]::YesNo,
         [System.Windows.MessageBoxImage]::Warning,
         [System.Windows.MessageBoxResult]::No
+    )
+    return $choice -eq [System.Windows.MessageBoxResult]::Yes
+}
+
+$confirmLegacySwitcherRemoval = {
+    param([object]$LegacyPackage)
+    $version = if ($LegacyPackage.VersionName) { " version $($LegacyPackage.VersionName)" } else { '' }
+    $message = "The new Quest Home Switcher has been installed and verified.`n`nAn older test build$version is still installed as a separate app. Keeping it would leave two Switcher entries in your Quest library.`n`nRemove only the legacy Quest Home Switcher now? Shizuku, pairing data, and every Home APK remain untouched."
+    $choice = [System.Windows.MessageBox]::Show(
+        $window,
+        $message,
+        'Remove legacy Switcher duplicate?',
+        [System.Windows.MessageBoxButton]::YesNo,
+        [System.Windows.MessageBoxImage]::Question,
+        [System.Windows.MessageBoxResult]::Yes
     )
     return $choice -eq [System.Windows.MessageBoxResult]::Yes
 }
@@ -1366,7 +1612,7 @@ function Refresh-StatusCards {
 }
 
 function Complete-SwitcherSetup([string]$Serial) {
-    $installed = Ensure-SwitcherInstalled $Serial $updateStatus $confirmSwitcherMigration
+    $installed = Ensure-SwitcherInstalled $Serial $updateStatus $confirmSwitcherMigration $confirmLegacySwitcherRemoval
     Start-Switcher $Serial $updateStatus
     $script:SetupComplete = $true
     $stageTitleText.Text = 'SETUP COMPLETE'
@@ -1448,10 +1694,11 @@ $importButton.Add_Click({
     $dialog.Title = 'Select compatible Quest Home APKs'
     $dialog.Filter = 'Android APK files (*.apk)|*.apk'
     $dialog.Multiselect = $true
-    $downloads = Join-Path $env:USERPROFILE 'Downloads'
-    if (Test-Path -LiteralPath $downloads) { $dialog.InitialDirectory = $downloads }
+    $initialDirectory = Get-HomeImportInitialDirectory
+    if ($initialDirectory) { $dialog.InitialDirectory = $initialDirectory }
     $selected = $dialog.ShowDialog($window)
     if ($selected -ne $true) { return }
+    if ($dialog.FileNames.Count -gt 0) { Save-HomeImportDirectory $dialog.FileNames[0] | Out-Null }
 
     $importButton.IsEnabled = $false
     $fastSwitcherButton.IsEnabled = $false
@@ -1526,7 +1773,7 @@ $fastSwitcherButton.Add_Click({
     try {
         $stageTitleText.Text = 'OPTIONAL ADB-ONLY TOOL'
         $detailText.Text = 'Checking only the Quest connection and Quest Home Switcher package. Shizuku setup, pairing, and starter functions are not used by this action.'
-        $installed = Invoke-SwitcherFastMode $updateStatus $confirmSwitcherMigration
+        $installed = Invoke-SwitcherFastMode $updateStatus $confirmSwitcherMigration $confirmLegacySwitcherRemoval
         $statusText.Text = "Quest Home Switcher $($installed.Version) is ready and open"
         $detailText.Text = 'The Switcher payload was verified, its installed version was checked, and the app was opened. This optional action did not inspect, start, update, pair, or configure Shizuku.'
         $progress.Value = 100

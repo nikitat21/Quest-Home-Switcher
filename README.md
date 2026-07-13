@@ -15,30 +15,42 @@
   <a href="android-app/CHANGELOG.md">Changelog</a>
 </p>
 
-> **Private pre-release repository.** Quest Home Switcher is an unofficial community project. It is not affiliated with or endorsed by Meta, Shizuku, or Quest Home Porter.
+> **Unofficial community project.** Quest Home Switcher is not affiliated with or endorsed by Meta, Shizuku, or Quest Home Porter.
 
 ## Download
 
-Use the files from the [latest private GitHub Release](https://github.com/nikitat21/Quest-Home-Switcher/releases/latest). Do not download APKs or EXEs from the source tree.
+Use the files from the [latest GitHub Release](https://github.com/nikitat21/Quest-Home-Switcher/releases/latest). Do not download APKs or EXEs from the source tree.
 
 | File | Choose this when |
 | --- | --- |
-| `Quest-Home-Switcher-Setup-v1.3.0.exe` | You want the recommended guided Windows installation, Shizuku setup, updates, and optional Home import. |
-| `Quest-Home-Switcher-v1.3.0.apk` | You already know how to sideload an APK, or you use a rooted Quest without Shizuku. |
-| `SHA256SUMS.txt` | You want to verify the downloaded files before running them. |
+| `Quest-Home-Switcher-Setup-v1.0.exe` | You want the recommended guided Windows installation, Shizuku setup, updates, and optional Home import. |
+| `Quest-Home-Switcher-v1.0.apk` | You already know how to sideload an APK, or you use a rooted Quest without Shizuku. |
 
-Release details and fingerprints are in [the v1.3.0 release notes](docs/RELEASE_v1.3.0.md).
+See [the v1.0 release notes](docs/RELEASE_v1.0.md) for the changes and known limitations.
 
 ## Quick start
 
 1. Enable Meta Developer Mode for the headset and connect the Quest to a Windows PC over USB.
 2. Put on the headset and approve the USB debugging prompt. Enable **Always allow from this computer** when it is your own PC.
-3. Run `Quest-Home-Switcher-Setup-v1.3.0.exe` and select **SET UP / REPAIR**.
+3. Run `Quest-Home-Switcher-Setup-v1.0.exe` and select **SET UP / REPAIR**.
 4. Follow the headset instructions. If Shizuku is already running, setup leaves it untouched and goes directly to installing or updating Quest Home Switcher.
 5. Place compatible Home APKs in `Download/Quest Homes`, or use **IMPORT HOME APKS** in setup.
 6. Open Quest Home Switcher, approve its Shizuku permission once when asked, select a Home, and choose **Apply Home**.
 
 First-time Shizuku pairing is explained step by step in [Installation](docs/INSTALLATION.md). Rooted users can use the APK directly without Shizuku.
+
+## Import Home APKs
+
+The Windows setup provides the easiest way to add Homes:
+
+1. Connect and authorize the Quest over USB.
+2. Open the setup and select **IMPORT HOME APKS**.
+3. The file picker opens the detected Quest Home Editor `Cooked` folder when available. Otherwise it uses the last location or your Downloads folder.
+4. Select one or more compatible **NoRoot-Spoof Home APKs**.
+5. Review the detected names. You can edit every name before importing.
+6. Confirm the import, then open Quest Home Switcher in the headset and select **Refresh**.
+
+The setup validates every selected APK and copies accepted Homes to `Download/Quest Homes` on the headset. It does not include or download Home APKs for you.
 
 ## Features
 
@@ -79,7 +91,7 @@ Horizon OS does not provide a public Home-switching API, so every switch must us
 - The app validates the selected APK again immediately before activation.
 - Rootless activation keeps a temporary rollback copy, verifies the installed scene, and restores the previous Home when possible if activation fails.
 - Setup does not stop, downgrade, re-pair, update, or reinstall a Shizuku server that is already verified as running.
-- An older debug-signed Switcher is removed only after Android reports a signing-key mismatch and the user approves a specific warning.
+- A legacy test Switcher is removed only after the new release is installed and verified, and the user approves a clearly scoped warning.
 - The importer never trusts a filename alone and never silently overwrites a different remote file.
 - Signing keys, passwords, Home APKs, and Meta content are not stored in this repository.
 
@@ -136,4 +148,4 @@ All Meta names and assets remain the property of their respective owners. No Met
 
 ## License
 
-This private pre-release repository does not currently grant an open-source license. Public distribution and upstream licensing must be resolved before changing the repository visibility. See [LICENSE.md](LICENSE.md).
+This repository does not currently grant an open-source license. See [LICENSE.md](LICENSE.md).

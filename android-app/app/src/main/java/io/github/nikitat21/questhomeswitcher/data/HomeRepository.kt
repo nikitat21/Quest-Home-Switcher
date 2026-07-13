@@ -1,12 +1,12 @@
-package dev.codex.questhomeswitcher.data
+package io.github.nikitat21.questhomeswitcher.data
 
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Environment
-import dev.codex.questhomeswitcher.domain.HomeEnvironment
-import dev.codex.questhomeswitcher.domain.HomeEnvironmentType
-import dev.codex.questhomeswitcher.domain.QuestHomeContract
-import dev.codex.questhomeswitcher.shell.ShellRunner
+import io.github.nikitat21.questhomeswitcher.domain.HomeEnvironment
+import io.github.nikitat21.questhomeswitcher.domain.HomeEnvironmentType
+import io.github.nikitat21.questhomeswitcher.domain.QuestHomeContract
+import io.github.nikitat21.questhomeswitcher.shell.ShellRunner
 import java.io.File
 import java.security.MessageDigest
 import java.text.DecimalFormat

@@ -1,7 +1,7 @@
-package dev.codex.questhomeswitcher.domain
+package io.github.nikitat21.questhomeswitcher.domain
 
-import dev.codex.questhomeswitcher.shell.ShellResult
-import dev.codex.questhomeswitcher.shell.ShellRunner
+import io.github.nikitat21.questhomeswitcher.shell.ShellResult
+import io.github.nikitat21.questhomeswitcher.shell.ShellRunner
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue

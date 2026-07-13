@@ -1,4 +1,4 @@
-package dev.codex.questhomeswitcher.shell
+package io.github.nikitat21.questhomeswitcher.shell
 
 import android.content.Context
 import android.content.Intent

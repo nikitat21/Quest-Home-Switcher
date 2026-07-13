@@ -11,14 +11,14 @@ The final setup UI was launched on Windows while the authorized Quest was connec
 - Required controller functions were present.
 - The Switcher build-input APK matched the pinned SHA-256.
 - The APK was embedded as a C# manifest resource.
-- The launcher extracted the APK to a unique private temporary runtime and verified its SHA-256 before starting PowerShell.
+- The launcher extracted the APK to a unique isolated temporary runtime and verified its SHA-256 before starting PowerShell.
 - The finished EXE was copied by itself to an isolated directory with no sibling APK; its embedded-payload self-test returned exit code 0.
 - Mocked state tests passed for:
   - verified `shizuku_server`, Android shell UID 2000 -> `Running`
   - installed package without server -> `InstalledStopped`
   - missing Shizuku package -> `Missing`
   - wrong process UID -> rejected as `InvalidProcess`
-  - installed Switcher version code 12 and version `1.3.0` -> `Current`
+  - installed Switcher version code 13 and version `1.0` -> `Current`
   - older Switcher version code 10 -> `Outdated`
   - same version code with an unexpected version name -> `Outdated`
   - genuinely newer Switcher version code -> `Current`
@@ -46,7 +46,7 @@ The final setup UI was launched on Windows while the authorized Quest was connec
   - `IMPORT HOME APKS` completes without calling it
 - Signing-key migration mocks passed for:
   - normal `adb install -r` reports `INSTALL_FAILED_UPDATE_INCOMPATIBLE`
-  - explicit approval removes exactly `dev.codex.questhomeswitcher`, installs again, and verifies the result
+  - explicit approval removes only the known legacy Quest Home Switcher package after the release install is verified
   - explicit rejection leaves the old app installed and issues no uninstall command
   - the production Fast Mode -> Ensure -> migration path runs with a throwing `Get-ShizukuState` sentinel and never calls it
   - neither approved nor rejected migration invokes a Shizuku command
@@ -62,14 +62,13 @@ SELF_TEST_OK_XAML_OK_PAYLOAD_OK_STATE_MACHINE_OK_HOME_IMPORT_OK_PROFESSIONAL_NAM
 ## Artifact status
 
 - The professional Home naming and explicit signing-key migration are included in the current source.
-- The embedded build input is the permanently signed Quest Home Switcher `1.3.0` payload (version code 12).
-- Embedded APK SHA-256: `A500F308DB4B997BC8BE8C555963D76B201114FF04F39790C50288CAEF7B34F8`
-- Final one-file EXE SHA-256: `2F36A994860B0BA3A479494ECE658EC995EDA100718668C0B83E6849C8FE83F1`
+- The embedded build input is the permanently signed Quest Home Switcher `1.0` payload (version code 13).
+- The build verified the embedded APK digest in both the launcher and setup controller.
 - The final launcher was corrected to hide only the console allocation while allowing the WPF setup window itself to remain visible.
 
 ## Connected Quest verification
 
-- Quest Home Switcher `1.3.0` installed successfully with the permanent release certificate.
+- Quest Home Switcher `1.0` installed successfully with the permanent release certificate.
 - The Switcher recognized Shizuku immediately; the verified `shizuku_server` PID stayed `6980` through installation, switching, setup work, and Home organization.
 - A real V12 -> Blue Hill Gold Mine -> V12 round trip passed. Both installed results were checked against the decompressed `assets/scene.zip` SHA-256.
 - Fourteen verified Home APKs were moved into `/sdcard/Download/Quest Homes`, each with full APK and scene hash verification after the move.
@@ -84,8 +83,8 @@ SELFTEST_EXIT=0
 RUNTIME_CHILD_COUNT=0
 ```
 
-## Remaining release work
+## Recommended follow-up testing
 
-- Ask an external tester to exercise the clean first-time pairing and installed-but-stopped Shizuku paths. Those paths remain covered by mocks; they were intentionally not forced on the owner's currently stable Shizuku installation.
-- Code-signing the Windows EXE is optional for private testing but required to remove the Windows "Unknown publisher" warning.
-- A GitHub update endpoint is intentionally not included yet; establish the repository and permanent signing identity first.
+- External testing of the first-time pairing and installed-but-stopped Shizuku paths is recommended. Those paths are covered by mocks and were intentionally not forced on the owner's currently stable Shizuku installation.
+- Authenticode-signing the Windows EXE is recommended for a future release to remove the Windows **Unknown publisher** warning; it is not required for v1.0 to run.
+- An automatic GitHub update endpoint is not included in v1.0.

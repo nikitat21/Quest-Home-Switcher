@@ -14,15 +14,15 @@ val keystoreProperties = Properties().apply {
 }
 
 android {
-    namespace = "dev.codex.questhomeswitcher"
+    namespace = "io.github.nikitat21.questhomeswitcher"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "dev.codex.questhomeswitcher"
+        applicationId = "io.github.nikitat21.questhomeswitcher"
         minSdk = 29
         targetSdk = 32
-        versionCode = 12
-        versionName = "1.3.0"
+        versionCode = 13
+        versionName = "1.0"
     }
 
     signingConfigs {

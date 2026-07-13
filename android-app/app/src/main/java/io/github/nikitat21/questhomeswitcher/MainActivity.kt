@@ -1,4 +1,4 @@
-package dev.codex.questhomeswitcher
+package io.github.nikitat21.questhomeswitcher
 
 import android.Manifest
 import android.content.pm.PackageManager
@@ -8,8 +8,8 @@ import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import dev.codex.questhomeswitcher.ui.HomeSwitcherApp
-import dev.codex.questhomeswitcher.ui.HomeSwitcherViewModel
+import io.github.nikitat21.questhomeswitcher.ui.HomeSwitcherApp
+import io.github.nikitat21.questhomeswitcher.ui.HomeSwitcherViewModel
 
 class MainActivity : ComponentActivity() {
     private val homeSwitcherViewModel: HomeSwitcherViewModel by viewModels()

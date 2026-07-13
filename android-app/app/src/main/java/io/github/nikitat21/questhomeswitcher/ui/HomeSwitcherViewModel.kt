@@ -1,16 +1,16 @@
-package dev.codex.questhomeswitcher.ui
+package io.github.nikitat21.questhomeswitcher.ui
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import dev.codex.questhomeswitcher.data.HomeRepository
-import dev.codex.questhomeswitcher.domain.ActivateHomeUseCase
-import dev.codex.questhomeswitcher.domain.HomeEnvironment
-import dev.codex.questhomeswitcher.domain.QuestHomeContract
-import dev.codex.questhomeswitcher.shell.PrivilegeCoordinator
-import dev.codex.questhomeswitcher.shell.PrivilegeState
-import dev.codex.questhomeswitcher.shell.ShizukuShellRunner
-import dev.codex.questhomeswitcher.shell.RootShellRunner
+import io.github.nikitat21.questhomeswitcher.data.HomeRepository
+import io.github.nikitat21.questhomeswitcher.domain.ActivateHomeUseCase
+import io.github.nikitat21.questhomeswitcher.domain.HomeEnvironment
+import io.github.nikitat21.questhomeswitcher.domain.QuestHomeContract
+import io.github.nikitat21.questhomeswitcher.shell.PrivilegeCoordinator
+import io.github.nikitat21.questhomeswitcher.shell.PrivilegeState
+import io.github.nikitat21.questhomeswitcher.shell.ShizukuShellRunner
+import io.github.nikitat21.questhomeswitcher.shell.RootShellRunner
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

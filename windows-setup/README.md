@@ -1,14 +1,14 @@
-# Quest Home Switcher Setup 1.3.0
+# Quest Home Switcher Setup 1.0
 
 Guided, state-aware Windows setup for Quest Home Switcher. It detects the connected headset's current state and performs only the steps that are still required.
 
 ## Distribution file
 
-Send and run only:
+For normal installation, download and run only:
 
-- `Quest-Home-Switcher-Setup.exe`
+- `Quest-Home-Switcher-Setup-v1.0.exe`
 
-The Switcher APK is embedded in the EXE. At launch, both the controller and APK are extracted to a unique private directory below the Windows temporary folder. The launcher verifies the embedded APK SHA-256 before PowerShell starts and removes the private runtime directory after setup closes.
+The Switcher APK is embedded in the EXE. At launch, both the controller and APK are extracted to a unique isolated directory below the Windows temporary folder. The launcher verifies the embedded APK SHA-256 before PowerShell starts and removes the temporary runtime directory after setup closes.
 
 `Quest-Home-Switcher.apk` remains beside the source only as a build input. It is not required beside the finished EXE.
 
@@ -24,7 +24,7 @@ The Switcher APK is embedded in the EXE. At launch, both the controller and APK 
 
 ### Safe signing-key migration
 
-An older debug-signed Switcher can share the same package name but cannot be updated in place by the permanently signed release. The setup first attempts the normal non-destructive update. Only when Android explicitly returns `INSTALL_FAILED_UPDATE_INCOMPATIBLE` does it show a detailed **Yes/No warning**. If the user agrees, setup removes exactly `dev.codex.questhomeswitcher` and installs the verified payload again. If the user declines, the old Switcher remains installed.
+An older test Switcher may use a legacy package or a different signing key. Setup installs and verifies the release first, then shows a clearly scoped **Yes/No warning** before removing only the legacy test app. If the user declines, the old Switcher remains installed.
 
 This migration never uninstalls, stops, updates, or reconfigures Shizuku. Shizuku pairing and Home APK files under `Download/Quest Homes` remain untouched. Removing the old Switcher does clear only that app's settings, which is stated before confirmation.
 
@@ -36,6 +36,8 @@ This migration never uninstalls, stops, updates, or reconfigures Shizuku. Shizuk
 /sdcard/Download/Quest Homes
 ```
 
+The file picker opens a detected Quest Home Editor `Cooked` folder when available. If no `Cooked` folder is found, it uses the previous selection or the user's Downloads folder. Select one or more compatible NoRoot-Spoof Home APKs, review the editable names, confirm the import, and then select **Refresh** in Quest Home Switcher.
+
 An APK is accepted only when:
 
 - it is a readable ZIP/APK containing the exact entry `assets/scene.zip`; and
@@ -43,7 +45,7 @@ An APK is accepted only when:
 
 Before any upload, a review window shows every selected APK, its detected Home name, how it was identified, and its editable target filename. Multi-selection remains active. Target names are normalized to a safe, readable `.apk` filename and must be unique inside the selected batch.
 
-The setup carries the same official Meta Home catalog as `QuestHomeSwitcher-v1.3` (`OfficialHomeCatalog.kt`): 44 known SHA-256 values of the **decompressed `assets/scene.zip` entry** resolve to their real display names, such as Blue Hill Gold Mine, Crystal Atrium, Cyber City, Cascadia, and Meta Horizon Terrace. This scene hash remains reliable for spoofed APKs that all share the same target package. A valid unknown Custom Home receives a readable suggestion derived from its original filename, which the user can change before continuing.
+The setup carries the same Home catalog as the Android app (`OfficialHomeCatalog.kt`): 44 known SHA-256 values of the **decompressed `assets/scene.zip` entry** resolve to their real display names, such as Blue Hill Gold Mine, Crystal Atrium, Cyber City, Cascadia, and Meta Horizon Terrace. This scene hash remains reliable for spoofed APKs that all share the same target package. A valid unknown Custom Home receives a readable suggestion derived from its original filename, which the user can change before continuing.
 
 Existing files are never silently replaced: an identical remote APK SHA-256 is skipped, while different or unverifiable collisions receive `-2`, `-3`, and so on. Failed or ambiguous remote existence checks abort safely. Every uploaded file is size-verified and also SHA-256-verified when `sha256sum` is available on the Quest.
 
@@ -64,9 +66,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\Build.ps1
 ## Safety rules
 
 - No automatic Shizuku uninstall exists in this version.
-- Quest Home Switcher is removed only after Android reports a signing-key mismatch and the user explicitly approves the clearly scoped migration.
-- The migration command is restricted to the exact package `dev.codex.questhomeswitcher`; declining it performs no uninstall.
+- A conflicting or legacy Switcher is removed only after a clearly scoped warning and explicit user approval; legacy cleanup runs only after the release install is verified.
+- The migration command is restricted to the known legacy Quest Home Switcher package; declining it performs no uninstall.
 - The Home importer does not rely on APK file names to decide compatibility.
 - Shizuku comes only from official `RikkaApps/Shizuku` GitHub releases.
 - Platform Tools come only from Google.
-- The embedded Switcher payload is the permanently signed `1.3.0` build. Its version and SHA-256 are pinned in both the setup script and one-file launcher.
+- The embedded Switcher payload is the permanently signed `1.0` build. Its version and SHA-256 are pinned in both the setup script and one-file launcher.

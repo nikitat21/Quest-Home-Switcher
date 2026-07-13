@@ -9,7 +9,7 @@ $script = Join-Path $root 'QuestHomeSwitcherSetup.ps1'
 $payload = Join-Path $root 'Quest-Home-Switcher.apk'
 $icon = Join-Path $root 'branding\Quest-Home-Switcher.ico'
 $output = Join-Path $root 'Quest-Home-Switcher-Setup.exe'
-$expectedPayloadHash = 'A500F308DB4B997BC8BE8C555963D76B201114FF04F39790C50288CAEF7B34F8'
+$expectedPayloadHash = '57398CD94654694FDCFF01B7C73F190D4B8E6F96234CD5BDB7FC21C3328A3F17'
 
 foreach ($required in @($source, $script, $payload, $icon)) {
     if (-not (Test-Path -LiteralPath $required)) {
@@ -19,7 +19,7 @@ foreach ($required in @($source, $script, $payload, $icon)) {
 
 $actualPayloadHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $payload).Hash
 if ($actualPayloadHash -ne $expectedPayloadHash) {
-    throw 'Quest-Home-Switcher.apk does not match the expected permanently signed v1.3.0 payload.'
+    throw 'Quest-Home-Switcher.apk does not match the expected permanently signed v1.0 payload.'
 }
 
 $compilerCandidates = @(
@@ -49,7 +49,7 @@ if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $output)) {
 
 if (-not $SkipSelfTest) {
     # Prove that the distributable works with no sibling files. The EXE is copied
-    # by itself to a private build-test directory before the embedded-payload test.
+    # by itself to an isolated build-test directory before the embedded-payload test.
     $testBase = [System.IO.Path]::GetFullPath((Join-Path ([System.IO.Path]::GetTempPath()) 'QuestHomeSwitcherSetupBuildTest'))
     $testRoot = [System.IO.Path]::GetFullPath((Join-Path $testBase ([guid]::NewGuid().ToString('N'))))
     $testExe = Join-Path $testRoot 'Quest-Home-Switcher-Setup.exe'

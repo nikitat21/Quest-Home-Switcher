@@ -42,7 +42,7 @@ The script verifies all of the following before reporting success:
 
 - the APK signature;
 - the permanent certificate fingerprint;
-- package ID `dev.codex.questhomeswitcher`;
+- package ID `io.github.nikitat21.questhomeswitcher`;
 - the expected version code and version name; and
 - the final SHA-256 checksum.
 
@@ -67,10 +67,10 @@ Also test the Windows setup with this exact APK embedded as its payload. Never u
 
 ## 5. Publish the GitHub Release
 
-1. Create an annotated release tag such as `v1.3.0` from the verified source commit.
-2. Use the matching title, for example `Quest Home Switcher v1.3.0`.
+1. Create an annotated release tag such as `v1.0` from the verified source commit.
+2. Use the matching title, for example `Quest Home Switcher v1.0`.
 3. Copy the user-facing changes and known limitations into the release description.
-4. Attach the signed APK, the Windows setup EXE, and `SHA256SUMS.txt`.
+4. Attach the signed APK and the Windows setup EXE. Users do not need a separate checksum file for normal installation.
 5. State that the project is unofficial and that no Meta Home APKs are bundled.
 6. Download the uploaded files once and verify their checksums before announcing the release.
 

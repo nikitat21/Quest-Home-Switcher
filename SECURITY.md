@@ -4,18 +4,18 @@ Quest Home Switcher performs privileged local operations through Root or Shizuku
 
 ## Supported version
 
-Only the newest private pre-release is actively reviewed:
+Only the newest stable release is actively reviewed:
 
 | Version | Supported |
 | --- | --- |
-| 1.3.0 | Yes |
-| 1.2.x and older | No |
+| 1.0 | Yes |
+| Development builds | No |
 
 ## Reporting a vulnerability
 
-Use **Security → Report a vulnerability** in this private repository when private vulnerability reporting is available. Otherwise contact the repository owner privately before sharing exploit details.
+Use **Security -> Report a vulnerability** when vulnerability reporting is available. Otherwise contact the repository owner before sharing exploit details.
 
-Do not publish a proof of concept, device identifier, personal path, pairing code, password, signing key, keystore, private Home APK, or proprietary Meta content in an issue or pull request.
+Do not publish a proof of concept, device identifier, personal path, pairing code, password, signing key, keystore, non-redistributable Home APK, or proprietary Meta content in an issue or pull request.
 
 Please include:
 

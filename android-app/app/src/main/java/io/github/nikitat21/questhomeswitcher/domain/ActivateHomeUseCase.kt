@@ -1,6 +1,6 @@
-package dev.codex.questhomeswitcher.domain
+package io.github.nikitat21.questhomeswitcher.domain
 
-import dev.codex.questhomeswitcher.shell.ShellRunner
+import io.github.nikitat21.questhomeswitcher.shell.ShellRunner
 
 class ActivateHomeUseCase(
     private val shellRunner: ShellRunner,
@@ -148,7 +148,7 @@ class ActivateHomeUseCase(
         )
     }
 
-    private suspend fun tryReloadHorizon(runner: ShellRunner): dev.codex.questhomeswitcher.shell.ShellResult {
+    private suspend fun tryReloadHorizon(runner: ShellRunner): io.github.nikitat21.questhomeswitcher.shell.ShellResult {
         val command = """
             am force-stop com.oculus.vrshell >/dev/null 2>&1
             am force-stop com.oculus.shellenv >/dev/null 2>&1
@@ -158,7 +158,7 @@ class ActivateHomeUseCase(
         return runner.run(command)
     }
 
-    private suspend fun rollback(runner: ShellRunner): dev.codex.questhomeswitcher.shell.ShellResult {
+    private suspend fun rollback(runner: ShellRunner): io.github.nikitat21.questhomeswitcher.shell.ShellResult {
         return runner.run(
             """
                 pm uninstall --user 0 ${QuestHomeContract.TargetPackage} >/dev/null 2>&1 || true

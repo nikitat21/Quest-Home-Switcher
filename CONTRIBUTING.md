@@ -1,10 +1,10 @@
 # Contributing
 
-This is currently a private pre-release repository. Contributions are welcome from invited collaborators while public licensing and distribution are being resolved.
+Contributions are welcome. Keep changes focused, test them carefully, and respect the ownership of third-party Home content.
 
 ## Before starting
 
-- Open or comment on a private issue before a large change.
+- Open or comment on an issue before a large change.
 - Keep changes focused on one problem.
 - Never commit signing keys, passwords, pairing codes, device identifiers, local user paths, or generated release binaries.
 - Do not commit Quest Home APKs, extracted Meta assets, paid assets without redistribution rights, or other proprietary content.

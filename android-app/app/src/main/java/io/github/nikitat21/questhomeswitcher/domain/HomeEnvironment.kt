@@ -1,4 +1,4 @@
-package dev.codex.questhomeswitcher.domain
+package io.github.nikitat21.questhomeswitcher.domain
 
 data class HomeEnvironment(
     val displayName: String,

@@ -10,7 +10,7 @@ You need:
 - a Windows 10 or 11 PC;
 - a USB data cable;
 - Meta Developer Mode enabled for the headset;
-- the latest setup EXE from the private [GitHub Releases page](https://github.com/nikitat21/Quest-Home-Switcher/releases); and
+- the latest setup EXE from the [GitHub Releases page](https://github.com/nikitat21/Quest-Home-Switcher/releases); and
 - compatible Home APKs that you are legally allowed to use.
 
 Quest Home Switcher does not include or download Home APKs.
@@ -28,11 +28,10 @@ The normal storage-access prompt is not the same as USB debugging. If setup cann
 
 ### 2. Start the setup
 
-1. Download `Quest-Home-Switcher-Setup-v1.3.0.exe`.
-2. Compare its SHA-256 with `SHA256SUMS.txt` from the same release.
-3. Run the EXE and select **SET UP / REPAIR**.
+1. Download `Quest-Home-Switcher-Setup-v1.0.exe` from the latest release.
+2. Run the EXE and select **SET UP / REPAIR**.
 
-If Windows shows a reputation warning, verify the hash before continuing. The project does not ask you to disable antivirus protection.
+The Windows EXE is not Authenticode-signed yet, so Windows may show an **Unknown publisher** or reputation warning. Continue only when the file came from this repository's Releases page. The project does not ask you to disable antivirus protection.
 
 ### 3. Let setup detect the current state
 
@@ -60,9 +59,9 @@ Android deliberately requires the pairing code to be entered by the user. The se
 
 ### 5. Finish the Switcher installation
 
-Setup verifies its embedded APK, installs or updates package `dev.codex.questhomeswitcher`, verifies the installed version, and opens the app.
+Setup verifies its embedded APK, installs or updates Quest Home Switcher, verifies the installed version, and opens the app.
 
-When the setup screen says **SETUP COMPLETE**, select **SETUP COMPLETE - CLOSE**. If an old debug-signed build uses the same package name, Android rejects a normal update. Setup then shows a detailed confirmation before removing only the old Switcher package and installing the permanently signed build. Shizuku, its pairing, and Home files are not removed by this migration.
+When the setup screen says **SETUP COMPLETE**, select **SETUP COMPLETE - CLOSE**. After the release is installed and verified, setup may offer to remove a legacy Quest Home Switcher test app. This cleanup is optional and does not remove Shizuku, its pairing, or Home files.
 
 ### 6. Approve the app permission
 
@@ -78,9 +77,11 @@ After a full headset reboot, Shizuku itself must be started again. The Switcher 
 
 1. Reopen the setup EXE.
 2. Select **IMPORT HOME APKS**. This action is independent of Shizuku setup.
-3. Select one or more APKs.
-4. Review the detected Home names and edit target filenames if needed.
-5. Confirm the upload.
+3. The picker opens the Quest Home Editor `Cooked` folder when setup can detect it. Otherwise it uses the last location or your Downloads folder.
+4. Select one or more compatible **NoRoot-Spoof Home APKs**.
+5. Review the detected Home names and edit target filenames if needed.
+6. Confirm the import.
+7. In the headset, open Quest Home Switcher and select **Refresh**.
 
 Only APKs with a verified `assets/scene.zip` and the expected rootless environment target are accepted. Files are uploaded to:
 
@@ -119,7 +120,7 @@ Do not disconnect power or force-close the app while a Home is being replaced. I
 
 Rooted users do not need Shizuku:
 
-1. Install `Quest-Home-Switcher-v1.3.0.apk` manually through ADB or a trusted sideloading tool.
+1. Install `Quest-Home-Switcher-v1.0.apk` manually through ADB or a trusted sideloading tool.
 2. Open the app and approve the Magisk/`su` request.
 3. Let the app scan installed environment packages.
 4. Select an environment and apply it.
@@ -131,4 +132,4 @@ The app updates the selected Oculus preference and reloads VR Shell. Root behavi
 - Run the newest setup EXE and choose **UPDATE / OPEN SWITCHER** for an ADB-only Switcher update that does not inspect or modify Shizuku.
 - Choose **SET UP / REPAIR** when Shizuku itself also needs diagnosis.
 - A verified running Shizuku server is never restarted or updated by the normal setup flow.
-- Always download the setup, APK, and checksum file from the same release.
+- Always download the setup or manual APK from this repository's Releases page.

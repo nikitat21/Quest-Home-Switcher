@@ -1,4 +1,4 @@
-package dev.codex.questhomeswitcher.ui
+package io.github.nikitat21.questhomeswitcher.ui
 
 import android.graphics.BitmapFactory
 import androidx.compose.foundation.BorderStroke
@@ -71,10 +71,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import dev.codex.questhomeswitcher.R
-import dev.codex.questhomeswitcher.domain.HomeEnvironment
-import dev.codex.questhomeswitcher.domain.HomeEnvironmentType
-import dev.codex.questhomeswitcher.shell.PrivilegeState
+import io.github.nikitat21.questhomeswitcher.R
+import io.github.nikitat21.questhomeswitcher.domain.HomeEnvironment
+import io.github.nikitat21.questhomeswitcher.domain.HomeEnvironmentType
+import io.github.nikitat21.questhomeswitcher.shell.PrivilegeState
 
 private val Accent = Color(0xFF63DDB7)
 private val AccentBlue = Color(0xFF72C7F6)

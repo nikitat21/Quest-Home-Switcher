@@ -87,7 +87,7 @@ Use **IMPORT HOME APKS** in the Windows setup for the clearest validation result
 
 Official names are resolved from the decompressed `assets/scene.zip` hash. A scene that is not in the current catalog falls back to a cleaned filename.
 
-This does not mean that the Home is invalid. Rename it in the setup import review for a clearer display name, and include the scene hash in a private catalog update request if you can legally share that metadata.
+This does not mean that the Home is invalid. Rename it in the setup import review for a clearer display name, and include the scene hash in a catalog update request if you can legally share that metadata.
 
 ## Applying a Home fails
 
@@ -102,11 +102,11 @@ The app attempts to restore the previous Home after a rootless installation or s
 
 ## The old Switcher cannot be updated
 
-Builds signed with the old debug key cannot be updated by the permanently signed release. The setup handles this only after Android returns `INSTALL_FAILED_UPDATE_INCOMPATIBLE`.
+Android cannot update an app in place when the installed copy uses the same package ID but a different signing key. Setup handles this only after Android returns `INSTALL_FAILED_UPDATE_INCOMPATIBLE`.
 
-Read the confirmation carefully. Approving it removes only package `dev.codex.questhomeswitcher`, then installs the release build. This clears the old Switcher's settings but does not remove Shizuku, Shizuku pairing, or Home APK files.
+Read the confirmation carefully. A signing-key migration removes only the conflicting Switcher package before retrying the verified release. Separately, after a successful release installation, setup may offer to remove a legacy test app. Neither action removes Shizuku, Shizuku pairing, or Home APK files.
 
-## What to include in a private bug report
+## What to include in a bug report
 
 Include:
 

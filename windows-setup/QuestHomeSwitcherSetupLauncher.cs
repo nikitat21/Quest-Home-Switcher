@@ -9,14 +9,14 @@ using System.Windows.Forms;
 [assembly: AssemblyDescription("State-aware setup for Quest Home Switcher and Shizuku")]
 [assembly: AssemblyCompany("Quest Community Tools")]
 [assembly: AssemblyProduct("Quest Home Switcher Setup")]
-[assembly: AssemblyVersion("1.3.0.0")]
-[assembly: AssemblyFileVersion("1.3.0.0")]
+[assembly: AssemblyVersion("1.0.0.0")]
+[assembly: AssemblyFileVersion("1.0.0.0")]
 
 internal static class Program
 {
     private const string ScriptResourceName = "QuestHomeSwitcherSetupAssistant.QuestHomeSwitcherSetup.ps1";
     private const string PayloadResourceName = "QuestHomeSwitcherSetupAssistant.Quest-Home-Switcher.apk";
-    private const string ExpectedPayloadSha256 = "A500F308DB4B997BC8BE8C555963D76B201114FF04F39790C50288CAEF7B34F8";
+    private const string ExpectedPayloadSha256 = "57398CD94654694FDCFF01B7C73F190D4B8E6F96234CD5BDB7FC21C3328A3F17";
 
     [STAThread]
     private static void Main(string[] args)
@@ -24,7 +24,7 @@ internal static class Program
         string runtime = Path.Combine(
             Path.GetTempPath(),
             "QuestHomeSwitcherSetup",
-            "1.3.0",
+            "1.0",
             Guid.NewGuid().ToString("N"));
 
         try

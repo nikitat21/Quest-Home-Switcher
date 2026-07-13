@@ -28,7 +28,7 @@ body:
     attributes:
       label: Version
       description: Enter the app or setup version shown on screen.
-      placeholder: "1.3.0"
+      placeholder: "1.0"
     validations:
       required: true
 

@@ -1,4 +1,4 @@
-package dev.codex.questhomeswitcher.data
+package io.github.nikitat21.questhomeswitcher.data
 
 /** Names used by Meta for the retired official Quest Home environments. */
 internal object OfficialHomeCatalog {

@@ -1,4 +1,4 @@
-package dev.codex.questhomeswitcher.shell
+package io.github.nikitat21.questhomeswitcher.shell
 
 import java.io.BufferedReader
 import java.io.InputStreamReader
