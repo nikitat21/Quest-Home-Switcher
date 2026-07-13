@@ -79,9 +79,10 @@ After a full headset reboot, Shizuku itself must be started again. The Switcher 
 2. Select **IMPORT HOME APKS**. This action is independent of Shizuku setup.
 3. The picker opens the Quest Home Editor `Cooked` folder when setup can detect it. Otherwise it uses the last location or your Downloads folder.
 4. Select one or more compatible **NoRoot-Spoof Home APKs**.
-5. Review the detected Home names and edit target filenames if needed.
-6. Confirm the import.
-7. In the headset, open Quest Home Switcher and select **Refresh**.
+5. Review the detected Home names. Edit the permanently highlighted **Name on Quest** field when you want a different display name.
+6. Select **CONTINUE TO IMPORT**. Setup automatically adds `.apk` and removes unsafe filename characters on the same click. It stops only when two selected Homes would have the same name.
+7. Review the result window. It shows clear totals and one status row for every selected file.
+8. Select **DONE**. In the headset, open Quest Home Switcher and select **Refresh**.
 
 Only APKs with a verified `assets/scene.zip` and the expected rootless environment target are accepted. Files are uploaded to:
 

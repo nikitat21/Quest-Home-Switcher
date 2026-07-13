@@ -47,8 +47,9 @@ The Windows setup provides the easiest way to add Homes:
 2. Open the setup and select **IMPORT HOME APKS**.
 3. The file picker opens the detected Quest Home Editor `Cooked` folder when available. Otherwise it uses the last location or your Downloads folder.
 4. Select one or more compatible **NoRoot-Spoof Home APKs**.
-5. Review the detected names. You can edit every name before importing.
-6. Confirm the import, then open Quest Home Switcher in the headset and select **Refresh**.
+5. Review the detected names. Each row has a permanently highlighted **Name on Quest** field that you can edit directly.
+6. Select **CONTINUE TO IMPORT**. Missing `.apk` endings and unsafe filename characters are cleaned automatically without asking you to continue a second time. Only duplicate names need manual correction.
+7. Check the clear result window, select **DONE**, then open Quest Home Switcher in the headset and select **Refresh**.
 
 The setup validates every selected APK and copies accepted Homes to `Download/Quest Homes` on the headset. It does not include or download Home APKs for you.
 

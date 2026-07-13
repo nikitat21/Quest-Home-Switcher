@@ -35,12 +35,18 @@ The final setup UI was launched on Windows while the authorized Quest was connec
   - readable unsafe Windows filename cleanup
   - empty-name fallback
   - duplicate suggestions in a multi-select receive unique local suffixes
-  - edited names are normalized and shown again before acceptance
+  - edited names receive `.apk` and unsafe-character cleanup automatically on the same Continue click
   - duplicate user-edited target names are rejected
   - identical remote SHA-256 -> skip
   - different remote SHA-256 -> suffixed filename
   - failed/ambiguous remote existence lookup -> aborts without selecting an overwrite target
-- The Home-name review WPF window and its editable multi-row DataGrid loaded successfully in STA mode.
+- The Home-name review WPF window loaded successfully in STA mode with a permanently highlighted **Name on Quest** text field for every row.
+- The dedicated result WPF window loaded successfully with plain-language totals, a scrollable per-file result grid, and a clear **DONE** action.
+- Transfer safety mocks passed for:
+  - successful `adb push` writes progress to stderr and Windows PowerShell wraps it as `NativeCommandError`; exit code 0 is accepted and the size/hash verification continues
+  - a non-zero `adb push` exit code removes the target copy and reports failure
+  - a remote size mismatch removes the incomplete target copy and reports failure
+  - a remote SHA-256 mismatch removes the invalid target copy and reports failure
 - Isolation mocks replace `Get-ShizukuState` with a throwing sentinel and prove:
   - `UPDATE / OPEN SWITCHER` completes without calling it
   - `IMPORT HOME APKS` completes without calling it
@@ -72,6 +78,7 @@ SELF_TEST_OK_XAML_OK_PAYLOAD_OK_STATE_MACHINE_OK_HOME_IMPORT_OK_PROFESSIONAL_NAM
 - The Switcher recognized Shizuku immediately; the verified `shizuku_server` PID stayed `6980` through installation, switching, setup work, and Home organization.
 - A real V12 -> Blue Hill Gold Mine -> V12 round trip passed. Both installed results were checked against the decompressed `assets/scene.zip` SHA-256.
 - Fourteen verified Home APKs were moved into `/sdcard/Download/Quest Homes`, each with full APK and scene hash verification after the move.
+- A real import of `rockquarry_NoRoot-Spoof.apk` completed successfully: 59,817,619 bytes and SHA-256 `FAD6A999D589EF6B6D953055D19B281E4EC275B46D249134851AE2AFB681DA91` matched the Quest copy.
 - The Switcher then reported `14 found`, `Shizuku connected`, and `Active: Dampfstadt V12 Quest Test` from the new folder.
 - Five unrelated APKs remained loose in Download and were not treated as Homes.
 

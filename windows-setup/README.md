@@ -36,14 +36,16 @@ This migration never uninstalls, stops, updates, or reconfigures Shizuku. Shizuk
 /sdcard/Download/Quest Homes
 ```
 
-The file picker opens a detected Quest Home Editor `Cooked` folder when available. If no `Cooked` folder is found, it uses the previous selection or the user's Downloads folder. Select one or more compatible NoRoot-Spoof Home APKs, review the editable names, confirm the import, and then select **Refresh** in Quest Home Switcher.
+The file picker opens a detected Quest Home Editor `Cooked` folder when available. If no `Cooked` folder is found, it uses the previous selection or the user's Downloads folder. Select one or more compatible NoRoot-Spoof Home APKs, edit the highlighted **Name on Quest** fields if needed, select **CONTINUE TO IMPORT**, review the result window, and then select **Refresh** in Quest Home Switcher.
 
 An APK is accepted only when:
 
 - it is a readable ZIP/APK containing the exact entry `assets/scene.zip`; and
 - its `AndroidManifest.xml` bytes contain `com.meta.shell.env.footprint.haven2025` as UTF-8 or UTF-16LE.
 
-Before any upload, a review window shows every selected APK, its detected Home name, how it was identified, and its editable target filename. Multi-selection remains active. Target names are normalized to a safe, readable `.apk` filename and must be unique inside the selected batch.
+Before any upload, the review window shows the original file, detected Home, and an always-visible, accent-bordered **Name on Quest** text field for every selected APK. Multi-selection remains active. On **CONTINUE TO IMPORT**, target names are normalized to a safe, readable `.apk` filename and accepted immediately; automatic cleanup does not require a second Continue click. Only duplicate names block the import until the user makes them unique.
+
+After the transfer, a dedicated result window shows totals for imported, already-present, incompatible, and failed files. Its scrollable table gives every selected file a plain-language status and short result, followed by the instruction to open Quest Home Switcher and select **Refresh**.
 
 The setup carries the same Home catalog as the Android app (`OfficialHomeCatalog.kt`): 44 known SHA-256 values of the **decompressed `assets/scene.zip` entry** resolve to their real display names, such as Blue Hill Gold Mine, Crystal Atrium, Cyber City, Cascadia, and Meta Horizon Terrace. This scene hash remains reliable for spoofed APKs that all share the same target package. A valid unknown Custom Home receives a readable suggestion derived from its original filename, which the user can change before continuing.
 

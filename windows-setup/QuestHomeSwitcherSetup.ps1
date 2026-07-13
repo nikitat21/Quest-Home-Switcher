@@ -808,13 +808,10 @@ function Test-HomeImportReviewNames([object[]]$Items) {
         }
     }
 
-    if ($changed) {
-        return [pscustomobject]@{ Valid=$false; Changed=$true; Message='Some target names contained unsupported characters or were missing .apk. The cleaned names are now shown; review them once more.' }
-    }
     if ($duplicates.Count -gt 0) {
-        return [pscustomobject]@{ Valid=$false; Changed=$false; Message="Each selected Home needs a unique target name. Rename: $($duplicates -join ', ')" }
+        return [pscustomobject]@{ Valid=$false; Changed=$changed; Message="Each selected Home needs a unique name. Rename: $($duplicates -join ', ')" }
     }
-    return [pscustomobject]@{ Valid=$true; Changed=$false; Message='' }
+    return [pscustomobject]@{ Valid=$true; Changed=$changed; Message='' }
 }
 
 function New-HomeImportReviewWindow {
@@ -835,6 +832,17 @@ function New-HomeImportReviewWindow {
       <Setter Property="Background" Value="#172230"/><Setter Property="Foreground" Value="#D7E1ED"/>
       <Setter Property="BorderBrush" Value="#314155"/><Setter Property="BorderThickness" Value="1"/>
     </Style>
+    <Style TargetType="{x:Type DataGridColumnHeader}">
+      <Setter Property="Background" Value="#162230"/><Setter Property="Foreground" Value="#D7E1ED"/>
+      <Setter Property="BorderBrush" Value="#263648"/><Setter Property="BorderThickness" Value="0,0,1,1"/>
+      <Setter Property="FontWeight" Value="SemiBold"/><Setter Property="Padding" Value="12,0"/>
+    </Style>
+    <Style TargetType="{x:Type DataGridCell}">
+      <Setter Property="BorderThickness" Value="0"/><Setter Property="VerticalContentAlignment" Value="Center"/>
+      <Style.Triggers>
+        <Trigger Property="IsSelected" Value="True"><Setter Property="Background" Value="#163047"/><Setter Property="Foreground" Value="#F4F7FB"/></Trigger>
+      </Style.Triggers>
+    </Style>
   </Window.Resources>
   <Grid Margin="34">
     <Grid.RowDefinitions>
@@ -844,22 +852,31 @@ function New-HomeImportReviewWindow {
     <StackPanel Grid.Row="0">
       <TextBlock Text="REVIEW BEFORE UPLOAD" Foreground="#55E0B5" FontWeight="Bold" FontSize="13"/>
       <TextBlock Text="Name your Quest Homes" FontSize="30" FontWeight="Bold" Margin="0,8,0,6"/>
-      <TextBlock Text="Official Meta Homes are identified by the SHA-256 of assets/scene.zip. Unknown compatible Homes keep a cleaned version of their original file name." Foreground="#AEBBCB" FontSize="15" TextWrapping="Wrap"/>
+      <TextBlock Text="Check the detected names and choose how each Home should appear in Quest Home Switcher." Foreground="#AEBBCB" FontSize="15" TextWrapping="Wrap"/>
     </StackPanel>
     <Border Grid.Row="1" Background="#101925" CornerRadius="10" Padding="15,11" Margin="0,20,0,12">
-      <TextBlock Text="Edit Target file if you want. Every name is cleaned safely and must be unique. If a file already exists on the Quest, a collision suffix is added without overwriting it." Foreground="#C3D0DE" FontSize="14" TextWrapping="Wrap"/>
+      <TextBlock Text="Click the highlighted name field and type any name you want. .apk is added automatically. Existing files are never overwritten." Foreground="#C3D0DE" FontSize="14" TextWrapping="Wrap"/>
     </Border>
     <Border Grid.Row="2" Background="#0D151F" BorderBrush="#263648" BorderThickness="1" CornerRadius="10" Padding="1">
       <DataGrid x:Name="ReviewGrid" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False"
                 CanUserReorderColumns="False" CanUserSortColumns="False" HeadersVisibility="Column"
                 GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="#263648"
                 Background="#0D151F" Foreground="#EEF4FA" RowBackground="#101925" AlternatingRowBackground="#131E2B"
-                BorderThickness="0" RowHeight="62" ColumnHeaderHeight="42" FontSize="14" SelectionMode="Extended">
+                BorderThickness="0" RowHeight="62" ColumnHeaderHeight="42" FontSize="14"
+                SelectionMode="Single" SelectionUnit="Cell">
         <DataGrid.Columns>
-          <DataGridTextColumn Header="Selected APK" Binding="{Binding SourceName}" IsReadOnly="True" Width="2*"/>
-          <DataGridTextColumn Header="Detected Home" Binding="{Binding DetectedName}" IsReadOnly="True" Width="1.45*"/>
-          <DataGridTextColumn Header="Identification" Binding="{Binding Identification}" IsReadOnly="True" Width="1.5*"/>
-          <DataGridTextColumn Header="Target file (editable)" Binding="{Binding TargetName, UpdateSourceTrigger=PropertyChanged}" Width="1.7*"/>
+          <DataGridTextColumn Header="Original file" Binding="{Binding SourceName}" IsReadOnly="True" Width="2*"/>
+          <DataGridTextColumn Header="Detected Home" Binding="{Binding DetectedName}" IsReadOnly="True" Width="1.4*"/>
+          <DataGridTemplateColumn Header="Name on Quest" Width="1.7*">
+            <DataGridTemplateColumn.CellTemplate>
+              <DataTemplate>
+                <TextBox Text="{Binding TargetName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                         Background="#142435" Foreground="#F4F7FB" BorderBrush="#55E0B5"
+                         BorderThickness="1" Padding="10,7" Margin="8,8" Cursor="IBeam"
+                         VerticalContentAlignment="Center"/>
+              </DataTemplate>
+            </DataGridTemplateColumn.CellTemplate>
+          </DataGridTemplateColumn>
         </DataGrid.Columns>
       </DataGrid>
     </Border>
@@ -905,8 +922,113 @@ function Show-HomeImportReview([object[]]$Items, [object]$Owner) {
     })
 
     $reviewWindow.ShowDialog() | Out-Null
-    if (-not $state.Confirmed) { return $null }
+    if (-not $state.Confirmed) { return @() }
     return [object[]]($rows | ForEach-Object { $_ })
+}
+
+function New-HomeImportResultWindow {
+    [xml]$resultXaml = @'
+<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Home Import Results" Width="900" Height="620" MinWidth="760" MinHeight="520"
+        WindowStartupLocation="CenterOwner" ResizeMode="CanResize"
+        Background="#080D14" Foreground="#F4F7FB" FontFamily="Segoe UI">
+  <Window.Resources>
+    <Style TargetType="Button">
+      <Setter Property="Background" Value="#55E0B5"/><Setter Property="Foreground" Value="#07110E"/>
+      <Setter Property="FontWeight" Value="Bold"/><Setter Property="FontSize" Value="14"/>
+      <Setter Property="Height" Value="52"/><Setter Property="BorderThickness" Value="0"/>
+      <Setter Property="Cursor" Value="Hand"/><Setter Property="Padding" Value="24,0"/>
+    </Style>
+    <Style TargetType="{x:Type DataGridColumnHeader}">
+      <Setter Property="Background" Value="#162230"/><Setter Property="Foreground" Value="#D7E1ED"/>
+      <Setter Property="BorderBrush" Value="#263648"/><Setter Property="BorderThickness" Value="0,0,1,1"/>
+      <Setter Property="FontWeight" Value="SemiBold"/><Setter Property="Padding" Value="12,0"/>
+    </Style>
+    <Style TargetType="{x:Type DataGridCell}">
+      <Setter Property="BorderThickness" Value="0"/><Setter Property="VerticalContentAlignment" Value="Center"/>
+      <Style.Triggers>
+        <Trigger Property="IsSelected" Value="True"><Setter Property="Background" Value="#163047"/><Setter Property="Foreground" Value="#F4F7FB"/></Trigger>
+      </Style.Triggers>
+    </Style>
+  </Window.Resources>
+  <Grid Margin="34">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/>
+    </Grid.RowDefinitions>
+    <StackPanel Grid.Row="0">
+      <TextBlock Text="HOME APK IMPORT" Foreground="#55E0B5" FontWeight="Bold" FontSize="13"/>
+      <TextBlock x:Name="ResultTitleText" Text="Import complete" FontSize="30" FontWeight="Bold" Margin="0,8,0,6"/>
+      <TextBlock x:Name="ResultSummaryText" Foreground="#AEBBCB" FontSize="15" TextWrapping="Wrap"/>
+    </StackPanel>
+    <Border Grid.Row="1" Background="#101925" CornerRadius="10" Padding="16,13" Margin="0,20,0,12">
+      <TextBlock Text="Homes are stored in Download/Quest Homes. Open Quest Home Switcher and press Refresh." Foreground="#C3D0DE" FontSize="14" TextWrapping="Wrap"/>
+    </Border>
+    <Border Grid.Row="2" Background="#0D151F" BorderBrush="#263648" BorderThickness="1" CornerRadius="10" Padding="1">
+      <DataGrid x:Name="ResultGrid" AutoGenerateColumns="False" IsReadOnly="True"
+                CanUserAddRows="False" CanUserDeleteRows="False" CanUserReorderColumns="False" CanUserSortColumns="False"
+                HeadersVisibility="Column" GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="#263648"
+                Background="#0D151F" Foreground="#EEF4FA" RowBackground="#101925" AlternatingRowBackground="#131E2B"
+                BorderThickness="0" RowHeight="54" ColumnHeaderHeight="42" FontSize="14" SelectionMode="Single">
+        <DataGrid.Columns>
+          <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="1.1*"/>
+          <DataGridTextColumn Header="Home" Binding="{Binding Home}" Width="1.8*"/>
+          <DataGridTextColumn Header="Result" Binding="{Binding Details}" Width="2.5*"/>
+        </DataGrid.Columns>
+      </DataGrid>
+    </Border>
+    <Grid Grid.Row="3" Margin="0,18,0,0">
+      <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+      <TextBlock Grid.Column="0" Text="You can import more Homes at any time." Foreground="#8293A8" VerticalAlignment="Center" FontSize="13"/>
+      <Button x:Name="ResultDoneButton" Grid.Column="1" Content="DONE" Width="170"/>
+    </Grid>
+  </Grid>
+</Window>
+'@
+    $reader = New-Object System.Xml.XmlNodeReader $resultXaml
+    return [Windows.Markup.XamlReader]::Load($reader)
+}
+
+function Get-FriendlyHomeImportError([string]$Message) {
+    if ($Message -match '(?i)ADB push failed') { return 'The file could not be copied. Reconnect the Quest and try again.' }
+    if ($Message -match '(?i)Size verification failed') { return 'The copy was incomplete and was removed safely. Try again.' }
+    if ($Message -match '(?i)SHA-256 verification failed') { return 'The copied file did not verify and was removed safely. Try again.' }
+    return 'The Home could not be imported. Try the file again.'
+}
+
+function Show-HomeImportResults([object[]]$Results, [object[]]$Rejected, [object]$Owner) {
+    $resultWindow = New-HomeImportResultWindow
+    if ($Owner) { $resultWindow.Owner = $Owner }
+    $titleText = $resultWindow.FindName('ResultTitleText')
+    $summaryText = $resultWindow.FindName('ResultSummaryText')
+    $resultGrid = $resultWindow.FindName('ResultGrid')
+    $doneButton = $resultWindow.FindName('ResultDoneButton')
+
+    $uploaded = @($Results | Where-Object { $_.Status -eq 'Uploaded' }).Count
+    $skipped = @($Results | Where-Object { $_.Status -eq 'Skipped' }).Count
+    $failed = @($Results | Where-Object { $_.Status -eq 'Failed' }).Count
+    $rejectedCount = @($Rejected).Count
+    $issueCount = $failed + $rejectedCount
+
+    $titleText.Text = if ($issueCount -eq 0) { 'Import complete' } else { 'Import finished with some issues' }
+    $summaryText.Text = "$uploaded imported  |  $skipped already on Quest  |  $rejectedCount incompatible  |  $failed failed"
+
+    $rows = New-Object 'System.Collections.ObjectModel.ObservableCollection[object]'
+    foreach ($result in $Results) {
+        if ($result.Status -eq 'Uploaded') {
+            $rows.Add([pscustomobject]@{ Status='Imported'; Home=$result.Remote; Details='Ready in Quest Home Switcher.' })
+        } elseif ($result.Status -eq 'Skipped') {
+            $rows.Add([pscustomobject]@{ Status='Already there'; Home=$result.Remote; Details='The identical Home is already on your Quest.' })
+        } else {
+            $rows.Add([pscustomobject]@{ Status='Failed'; Home=$result.Local; Details=(Get-FriendlyHomeImportError $result.Verification) })
+        }
+    }
+    foreach ($item in @($Rejected)) {
+        $rows.Add([pscustomobject]@{ Status='Not imported'; Home=$item.Name; Details='This is not a compatible Quest Home APK.' })
+    }
+    $resultGrid.ItemsSource = $rows
+    $doneButton.Add_Click({ $resultWindow.Close() })
+    $resultWindow.ShowDialog() | Out-Null
 }
 
 function ConvertTo-RemoteShellLiteral([string]$Value) {
@@ -985,7 +1107,10 @@ function Send-HomeApk([string]$Serial, [string]$LocalPath, [string]$DesiredName)
     }
 
     $push = Invoke-Adb @('-s', $Serial, 'push', $LocalPath, $target.Path) -AllowFailure
-    if ($push.ExitCode -ne 0 -or $push.Output -match '(?i)failed|error|denied') {
+    # Successful `adb push` progress is written to stderr. Windows PowerShell wraps
+    # that text in a NativeCommandError record even though adb returns exit code 0.
+    # Trust the process exit code here; size and SHA-256 are verified below.
+    if ($push.ExitCode -ne 0) {
         Remove-RemoteImportFile $Serial $target.Path
         throw "ADB push failed for $($localFile.Name):`n$($push.Output)"
     }
@@ -1123,7 +1248,7 @@ if ($SelfTest) {
         'Resolve-ExistingDirectory','Get-DownloadsDirectory','Get-DefaultHomeImportSearchRoots',
         'Find-HomeEditorCookedDirectory','Read-HomeImportDirectory','Save-HomeImportDirectory','Get-HomeImportInitialDirectory',
         'ConvertTo-SafeApkName','Add-ApkNameSuffix','New-HomeImportReviewItems','Test-HomeImportReviewNames',
-        'New-HomeImportReviewWindow','Show-HomeImportReview',
+        'New-HomeImportReviewWindow','Show-HomeImportReview','New-HomeImportResultWindow','Get-FriendlyHomeImportError','Show-HomeImportResults',
         'ConvertTo-RemoteShellLiteral','Ensure-RemoteImportDirectory','Test-RemoteFileExists',
         'Get-RemoteFileSha256','Get-RemoteFileSize','Remove-RemoteImportFile','Get-RemoteImportTarget','Send-HomeApk',
         'Invoke-SwitcherFastMode','Invoke-HomeImport'
@@ -1219,16 +1344,76 @@ if ($SelfTest) {
         if ($reviewItems.Count -ne 2 -or $reviewItems[0].TargetName -ne 'Same Home.apk' -or $reviewItems[1].TargetName -ne 'Same Home-2.apk') { throw 'Self-test failed: unique multi-select suggestions.' }
         $reviewItems[0].TargetName = 'Edited*Home'
         $cleanReview = Test-HomeImportReviewNames $reviewItems
-        if ($cleanReview.Valid -or -not $cleanReview.Changed -or $reviewItems[0].TargetName -ne 'Edited Home.apk') { throw 'Self-test failed: edited target cleanup.' }
-        if (-not (Test-HomeImportReviewNames $reviewItems).Valid) { throw 'Self-test failed: cleaned review acceptance.' }
+        if (-not $cleanReview.Valid -or -not $cleanReview.Changed -or $reviewItems[0].TargetName -ne 'Edited Home.apk') { throw 'Self-test failed: edited target cleanup.' }
         $reviewItems[1].TargetName = $reviewItems[0].TargetName
         if ((Test-HomeImportReviewNames $reviewItems).Valid) { throw 'Self-test failed: duplicate edited target rejection.' }
 
         $reviewWindow = New-HomeImportReviewWindow
         try {
             if (-not $reviewWindow -or -not $reviewWindow.FindName('ReviewGrid') -or -not $reviewWindow.FindName('ReviewContinueButton')) { throw 'Self-test failed: Home name review XAML.' }
+            $reviewGridTest = $reviewWindow.FindName('ReviewGrid')
+            if ($reviewGridTest.Columns.Count -ne 3 -or $reviewGridTest.Columns[2].Header -ne 'Name on Quest') { throw 'Self-test failed: simplified Home name columns.' }
+            $nameEditor = $reviewGridTest.Columns[2].CellTemplate.LoadContent()
+            $nameBinding = [System.Windows.Data.BindingOperations]::GetBinding($nameEditor, [System.Windows.Controls.TextBox]::TextProperty)
+            if (-not $nameEditor -or -not $nameBinding -or $nameBinding.Mode -ne [System.Windows.Data.BindingMode]::TwoWay -or $nameBinding.Path.Path -ne 'TargetName') { throw 'Self-test failed: always-visible Home name editor.' }
         } finally {
             if ($reviewWindow) { $reviewWindow.Close() }
+        }
+        $resultWindow = New-HomeImportResultWindow
+        try {
+            if (-not $resultWindow -or -not $resultWindow.FindName('ResultGrid') -or -not $resultWindow.FindName('ResultDoneButton')) { throw 'Self-test failed: Home import result XAML.' }
+            if ((Get-FriendlyHomeImportError 'ADB push failed for test.apk') -notmatch 'could not be copied') { throw 'Self-test failed: friendly import error.' }
+        } finally {
+            if ($resultWindow) { $resultWindow.Close() }
+        }
+
+        $pushTestOriginals = @{
+            'Get-RemoteImportTarget' = (Get-Item Function:Get-RemoteImportTarget).ScriptBlock
+            'Invoke-Adb' = (Get-Item Function:Invoke-Adb).ScriptBlock
+            'Get-RemoteFileSize' = (Get-Item Function:Get-RemoteFileSize).ScriptBlock
+            'Get-RemoteFileSha256' = (Get-Item Function:Get-RemoteFileSha256).ScriptBlock
+            'Remove-RemoteImportFile' = (Get-Item Function:Remove-RemoteImportFile).ScriptBlock
+        }
+        try {
+            $script:PushTestExitCode = 0
+            $script:PushTestRemoteSize = (Get-Item -LiteralPath $validUtf8).Length
+            $script:PushTestRemoteHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $validUtf8).Hash
+            $script:PushTestRemoveCount = 0
+            Set-Item Function:Get-RemoteImportTarget -Value {
+                param([string]$Serial, [string]$SafeName, [string]$LocalHash)
+                return [pscustomobject]@{ Skip=$false; Name=$SafeName; Path="/sdcard/Download/Quest Homes/$SafeName" }
+            }
+            Set-Item Function:Invoke-Adb -Value {
+                param([string[]]$Arguments, [switch]$AllowFailure)
+                return [pscustomobject]@{ ExitCode=$script:PushTestExitCode; Output='1 file pushed, 0 skipped. FullyQualifiedErrorId : NativeCommandError' }
+            }
+            Set-Item Function:Get-RemoteFileSize -Value { param([string]$Serial, [string]$Path) return $script:PushTestRemoteSize }
+            Set-Item Function:Get-RemoteFileSha256 -Value { param([string]$Serial, [string]$Path) return $script:PushTestRemoteHash }
+            Set-Item Function:Remove-RemoteImportFile -Value { param([string]$Serial, [string]$Path) $script:PushTestRemoveCount++ }
+
+            $pushSuccess = Send-HomeApk 'MOCK' $validUtf8 'Edited Home.apk'
+            if ($pushSuccess.Status -ne 'Uploaded' -or $script:PushTestRemoveCount -ne 0) { throw 'Self-test failed: successful adb stderr transfer.' }
+
+            $script:PushTestExitCode = 1
+            $pushFailed = $false
+            try { Send-HomeApk 'MOCK' $validUtf8 'Edited Home.apk' | Out-Null } catch { $pushFailed = $_.Exception.Message -match 'ADB push failed' }
+            if (-not $pushFailed -or $script:PushTestRemoveCount -ne 1) { throw 'Self-test failed: failed adb transfer cleanup.' }
+
+            $script:PushTestExitCode = 0
+            $script:PushTestRemoteSize++
+            $sizeFailed = $false
+            try { Send-HomeApk 'MOCK' $validUtf8 'Edited Home.apk' | Out-Null } catch { $sizeFailed = $_.Exception.Message -match 'Size verification failed' }
+            if (-not $sizeFailed -or $script:PushTestRemoveCount -ne 2) { throw 'Self-test failed: incomplete transfer cleanup.' }
+
+            $script:PushTestRemoteSize--
+            $script:PushTestRemoteHash = 'BADHASH'
+            $hashFailed = $false
+            try { Send-HomeApk 'MOCK' $validUtf8 'Edited Home.apk' | Out-Null } catch { $hashFailed = $_.Exception.Message -match 'SHA-256 verification failed' }
+            if (-not $hashFailed -or $script:PushTestRemoveCount -ne 3) { throw 'Self-test failed: hash mismatch cleanup.' }
+        } finally {
+            foreach ($entry in $pushTestOriginals.GetEnumerator()) {
+                Set-Item "Function:$($entry.Key)" -Value $entry.Value
+            }
         }
     } finally {
         $safePrefix = $apkTestBase.TrimEnd([System.IO.Path]::DirectorySeparatorChar) + [System.IO.Path]::DirectorySeparatorChar
@@ -1461,7 +1646,7 @@ if ($SelfTest) {
         }
     }
 
-    Write-Output 'SELF_TEST_OK_XAML_OK_PAYLOAD_OK_STATE_MACHINE_OK_HOME_IMPORT_OK_COOKED_PICKER_OK_PROFESSIONAL_NAMING_OK_SIGNATURE_MIGRATION_OK_FAST_MODES_NO_SHIZUKU_OK'
+    Write-Output 'SELF_TEST_OK_XAML_OK_PAYLOAD_OK_STATE_MACHINE_OK_HOME_IMPORT_OK_ADB_PUSH_OK_IMPORT_UI_OK_COOKED_PICKER_OK_PROFESSIONAL_NAMING_OK_SIGNATURE_MIGRATION_OK_FAST_MODES_NO_SHIZUKU_OK'
     exit 0
 }
 
@@ -1649,39 +1834,35 @@ $importButton.Add_Click({
         }
 
         $reviewItems = New-HomeImportReviewItems $accepted
-        $reviewedItems = @(Show-HomeImportReview $reviewItems $window)
-        if ($reviewedItems.Count -eq 0) {
+        $reviewed = Show-HomeImportReview $reviewItems $window
+        if ($null -eq $reviewed -or @($reviewed).Count -eq 0) {
             $stageTitleText.Text = 'HOME APK IMPORT'
             $statusText.Text = 'Import canceled - nothing was uploaded'
             $detailText.Text = 'Your selected APKs were validated, but no files were sent to the Quest.'
             $progress.Value = 0
             return
         }
+        $reviewedItems = @($reviewed)
 
         $results = @(Invoke-HomeImport $reviewedItems $updateStatus)
 
         $uploaded = @($results | Where-Object { $_.Status -eq 'Uploaded' }).Count
         $skipped = @($results | Where-Object { $_.Status -eq 'Skipped' }).Count
         $failed = @($results | Where-Object { $_.Status -eq 'Failed' }).Count
-        $statusText.Text = "$uploaded uploaded, $skipped already present, $($rejected.Count) rejected, $failed failed"
-
-        $lines = New-Object System.Collections.Generic.List[string]
-        foreach ($result in $results) {
-            if ($result.Status -eq 'Uploaded') {
-                $lines.Add("UPLOADED  $($result.Local) -> $($result.Remote) ($($result.Verification))")
-            } elseif ($result.Status -eq 'Skipped') {
-                $lines.Add("SKIPPED   $($result.Local) - identical SHA-256 already exists as $($result.Remote)")
-            } else {
-                $lines.Add("FAILED    $($result.Local) - $($result.Verification)")
-            }
+        $issueCount = $failed + $rejected.Count
+        $stageTitleText.Text = if ($issueCount -eq 0) { 'HOME IMPORT COMPLETE' } else { 'HOME IMPORT FINISHED' }
+        $statusText.Text = if ($issueCount -eq 0) {
+            "$uploaded imported, $skipped already on Quest"
+        } else {
+            "$uploaded imported, $skipped already on Quest, $issueCount need attention"
         }
-        foreach ($item in $rejected) {
-            $lines.Add("REJECTED  $($item.Name) - $($item.Reason)")
+        $detailText.Text = if ($issueCount -eq 0) {
+            'Your Homes are ready. Open Quest Home Switcher and press Refresh.'
+        } else {
+            'The completed imports are ready. Review the clear result list and retry only the files that need attention.'
         }
-        $visibleLines = @($lines | Select-Object -First 12)
-        if ($lines.Count -gt 12) { $visibleLines += "...and $($lines.Count - 12) more result(s)." }
-        $detailText.Text = "Imported files are in Download/Quest Homes. Open Quest Home Switcher and refresh its list.`n`n" + ($visibleLines -join "`n")
-        $progress.Value = if ($failed -eq 0) { 100 } else { 95 }
+        $progress.Value = 100
+        Show-HomeImportResults $results $rejected $window
     } catch {
         $stageTitleText.Text = 'HOME IMPORT - ACTION NEEDED'
         $statusText.Text = 'Home APK import did not complete'

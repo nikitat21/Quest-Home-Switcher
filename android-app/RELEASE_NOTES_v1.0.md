@@ -17,7 +17,7 @@ Quest Home Switcher 1.0 is the stable first release for Meta Quest 2, Quest 3, a
 
 ## Import Homes
 
-Open the Windows setup and select **IMPORT HOME APKS**. The picker opens a detected Quest Home Editor `Cooked` folder when available, otherwise the last location or Downloads. Select one or more NoRoot-Spoof Home APKs, review the editable names, confirm the import, and then select **Refresh** in the headset app.
+Open the Windows setup and select **IMPORT HOME APKS**. The picker opens a detected Quest Home Editor `Cooked` folder when available, otherwise the last location or Downloads. Select one or more NoRoot-Spoof Home APKs and edit the permanently highlighted **Name on Quest** fields if needed. Select **CONTINUE TO IMPORT** once; setup adds `.apk` and cleans unsafe filename characters automatically. Review the clear per-file result window, select **DONE**, and then select **Refresh** in the headset app.
 
 ## Requirements
 

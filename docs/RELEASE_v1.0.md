@@ -14,7 +14,7 @@ Version 1.0 is the stable, permanently signed release of Quest Home Switcher and
 - Direct root switching through `oculuspreferences` with VR Shell reload.
 - Guided Windows setup that leaves a verified running Shizuku server untouched.
 - One-time Quest-compatible Shizuku pairing flow with an in-place update from the official RikkaApps release.
-- Multi-file Home import with real-name detection, editable filenames, collision protection, and upload verification.
+- Multi-file Home import with real-name detection, an always-visible **Name on Quest** field, collision protection, upload verification, and a clear result window.
 - Safe migration from an earlier development-signed Switcher only after explicit user approval.
 
 ## Download
@@ -36,8 +36,9 @@ No additional text or checksum file is required for normal installation. Downloa
 1. Open the setup and select **IMPORT HOME APKS**.
 2. The picker opens a detected Quest Home Editor `Cooked` folder. If none is found, it uses the last location or Downloads.
 3. Select one or more compatible NoRoot-Spoof Home APKs.
-4. Review the detected names, edit them if needed, and confirm the import.
-5. Open Quest Home Switcher in the headset and select **Refresh**.
+4. Edit the highlighted **Name on Quest** fields if needed, then select **CONTINUE TO IMPORT**. Setup adds `.apk` and cleans unsafe filename characters automatically without a second confirmation click.
+5. Review the per-file result window and select **DONE**.
+6. Open Quest Home Switcher in the headset and select **Refresh**.
 
 ## Upgrade note
 
