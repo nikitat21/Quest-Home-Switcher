@@ -104,7 +104,7 @@ The app attempts to restore the previous Home after a rootless installation or s
 
 Android cannot update an app in place when the installed copy uses the same package ID but a different signing key. Setup handles this only after Android returns `INSTALL_FAILED_UPDATE_INCOMPATIBLE`.
 
-Read the confirmation carefully. A signing-key migration removes only the conflicting Switcher package before retrying the verified release. Separately, after a successful release installation, setup may offer to remove a legacy test app. Neither action removes Shizuku, Shizuku pairing, or Home APK files.
+Read the confirmation carefully. A signing-key migration removes only the conflicting installation of the current Switcher package before retrying the verified release. Declining leaves it installed. The migration does not remove Shizuku, Shizuku pairing, Home APK files, or any other app.
 
 ## What to include in a bug report
 

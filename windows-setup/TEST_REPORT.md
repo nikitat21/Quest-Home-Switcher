@@ -46,8 +46,8 @@ The final setup UI was launched on Windows while the authorized Quest was connec
   - `IMPORT HOME APKS` completes without calling it
 - Signing-key migration mocks passed for:
   - normal `adb install -r` reports `INSTALL_FAILED_UPDATE_INCOMPATIBLE`
-  - explicit approval removes only the known legacy Quest Home Switcher package after the release install is verified
-  - explicit rejection leaves the old app installed and issues no uninstall command
+  - explicit approval removes only `io.github.nikitat21.questhomeswitcher` after Android reports `INSTALL_FAILED_UPDATE_INCOMPATIBLE`, then retries the verified release
+  - explicit rejection leaves the installed Switcher unchanged and issues no uninstall command
   - the production Fast Mode -> Ensure -> migration path runs with a throwing `Get-ShizukuState` sentinel and never calls it
   - neither approved nor rejected migration invokes a Shizuku command
 - The C# launcher compiled successfully and its embedded-script self-test returned exit code 0.

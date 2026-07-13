@@ -91,7 +91,7 @@ Horizon OS does not provide a public Home-switching API, so every switch must us
 - The app validates the selected APK again immediately before activation.
 - Rootless activation keeps a temporary rollback copy, verifies the installed scene, and restores the previous Home when possible if activation fails.
 - Setup does not stop, downgrade, re-pair, update, or reinstall a Shizuku server that is already verified as running.
-- A legacy test Switcher is removed only after the new release is installed and verified, and the user approves a clearly scoped warning.
+- If Android reports a signing-key mismatch for the current Switcher package, setup asks for explicit approval before removing only that conflicting installation and retrying the verified release.
 - The importer never trusts a filename alone and never silently overwrites a different remote file.
 - Signing keys, passwords, Home APKs, and Meta content are not stored in this repository.
 

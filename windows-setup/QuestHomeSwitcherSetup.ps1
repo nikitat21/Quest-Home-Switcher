@@ -19,7 +19,6 @@ $script:ShizukuPackage = 'moe.shizuku.privileged.api'
 $script:ShizukuActivity = 'moe.shizuku.privileged.api/moe.shizuku.manager.MainActivity'
 $script:SwitcherPackage = 'io.github.nikitat21.questhomeswitcher'
 $script:SwitcherActivity = 'io.github.nikitat21.questhomeswitcher/.MainActivity'
-$script:LegacySwitcherPackage = 'dev.codex.questhomeswitcher'
 $script:SwitcherApk = Join-Path $script:DistributionRoot 'Quest-Home-Switcher.apk'
 $script:ExpectedSwitcherVersionCode = 13
 $script:ExpectedSwitcherVersionName = '1.0'
@@ -594,23 +593,7 @@ function Invoke-SwitcherSignatureMigration([string]$Serial, [scriptblock]$Status
     }
 }
 
-function Remove-LegacySwitcherIfPresent([string]$Serial, [scriptblock]$Status, [scriptblock]$ConfirmLegacyRemoval) {
-    $legacy = Get-PackageInfo $Serial $script:LegacySwitcherPackage
-    if (-not $legacy.Installed) { return $false }
-    if (-not $ConfirmLegacyRemoval -or -not (& $ConfirmLegacyRemoval $legacy)) { return $false }
-
-    & $Status 'Removing the verified legacy Switcher duplicate...' 93
-    $remove = Invoke-Adb @('-s', $Serial, 'uninstall', $script:LegacySwitcherPackage) -AllowFailure
-    if ($remove.ExitCode -ne 0 -or $remove.Output -notmatch '(?m)^Success\s*$') {
-        throw "Quest Home Switcher is installed, but Android could not remove the legacy duplicate. Shizuku and Home APK files were not touched.`n`n$($remove.Output)"
-    }
-    if ((Get-PackageInfo $Serial $script:LegacySwitcherPackage).Installed) {
-        throw 'Android reported success, but the legacy Quest Home Switcher duplicate is still installed.'
-    }
-    return $true
-}
-
-function Ensure-SwitcherInstalled([string]$Serial, [scriptblock]$Status, [scriptblock]$ConfirmMigration, [scriptblock]$ConfirmLegacyRemoval) {
+function Ensure-SwitcherInstalled([string]$Serial, [scriptblock]$Status, [scriptblock]$ConfirmMigration) {
     & $Status 'Checking the Quest Home Switcher package...' 74
     Test-SwitcherPayload | Out-Null
     $state = Get-SwitcherState $Serial
@@ -631,7 +614,6 @@ function Ensure-SwitcherInstalled([string]$Serial, [scriptblock]$Status, [script
     if ($verified.State -ne 'Current') {
         throw 'Quest Home Switcher installation could not be verified.'
     }
-    Remove-LegacySwitcherIfPresent $Serial $Status $ConfirmLegacyRemoval | Out-Null
     return $verified
 }
 
@@ -1024,9 +1006,9 @@ function Send-HomeApk([string]$Serial, [string]$LocalPath, [string]$DesiredName)
     return [pscustomobject]@{ Status='Uploaded'; Local=$localFile.Name; Remote=$target.Name; Verification=$verification }
 }
 
-function Invoke-SwitcherFastMode([scriptblock]$Status, [scriptblock]$ConfirmMigration, [scriptblock]$ConfirmLegacyRemoval) {
+function Invoke-SwitcherFastMode([scriptblock]$Status, [scriptblock]$ConfirmMigration) {
     $quest = Get-ReadyQuest $Status
-    $installed = Ensure-SwitcherInstalled $quest.Serial $Status $ConfirmMigration $ConfirmLegacyRemoval
+    $installed = Ensure-SwitcherInstalled $quest.Serial $Status $ConfirmMigration
     Start-Switcher $quest.Serial $Status
     return $installed
 }
@@ -1136,7 +1118,7 @@ if ($SelfTest) {
         'Get-ShizukuState','Get-SwitcherState','Get-Shizuku117Apk','Get-LatestShizukuApk',
         'Enable-AndroidDeveloperOptions','Open-QuestWirelessDebugging','Open-ShizukuManager',
         'Install-PairingVersion','Update-ShizukuAfterPairing','Try-StartInstalledShizuku',
-        'Test-SwitcherPayload','Invoke-SwitcherSignatureMigration','Remove-LegacySwitcherIfPresent','Ensure-SwitcherInstalled','Start-Switcher',
+        'Test-SwitcherPayload','Invoke-SwitcherSignatureMigration','Ensure-SwitcherInstalled','Start-Switcher',
         'Test-ByteSequence','Read-ZipEntryBytes','Get-ZipEntrySha256','ConvertTo-ReadableHomeName','Test-HomeApk',
         'Resolve-ExistingDirectory','Get-DownloadsDirectory','Get-DefaultHomeImportSearchRoots',
         'Find-HomeEditorCookedDirectory','Read-HomeImportDirectory','Save-HomeImportDirectory','Get-HomeImportInitialDirectory',
@@ -1428,43 +1410,6 @@ if ($SelfTest) {
         }
     }
 
-    $legacyCleanupOriginals = @{
-        'Get-PackageInfo' = (Get-Item Function:Get-PackageInfo).ScriptBlock
-        'Invoke-Adb' = (Get-Item Function:Invoke-Adb).ScriptBlock
-    }
-    try {
-        $script:LegacyMockInstalled = $true
-        $script:LegacyCleanupCommands = New-Object System.Collections.Generic.List[string]
-        Set-Item Function:Get-PackageInfo -Value {
-            param([string]$Serial, [string]$PackageName)
-            if ($PackageName -ne $script:LegacySwitcherPackage) { throw 'Legacy cleanup inspected an unrelated package.' }
-            return [pscustomobject]@{ Installed=$script:LegacyMockInstalled; VersionName='0.9-test'; VersionCode=9 }
-        }
-        Set-Item Function:Invoke-Adb -Value {
-            param([string[]]$Arguments, [switch]$AllowFailure)
-            $joined = $Arguments -join ' '
-            $script:LegacyCleanupCommands.Add($joined)
-            if ($joined -match ' uninstall dev\.codex\.questhomeswitcher$') {
-                $script:LegacyMockInstalled = $false
-                return [pscustomobject]@{ ExitCode=0; Output='Success' }
-            }
-            return [pscustomobject]@{ ExitCode=1; Output='unexpected mock command' }
-        }
-        $legacyStatus = { param([string]$Text, [int]$Percent) }
-        if (-not (Remove-LegacySwitcherIfPresent 'MOCK' $legacyStatus { param($Package) $true })) { throw 'Self-test failed: approved legacy Switcher cleanup.' }
-        $legacyUninstalls = @($script:LegacyCleanupCommands | Where-Object { $_ -match ' uninstall ' })
-        if ($legacyUninstalls.Count -ne 1 -or $legacyUninstalls[0] -notmatch ' uninstall dev\.codex\.questhomeswitcher$') { throw 'Self-test failed: legacy cleanup package scope.' }
-
-        $script:LegacyMockInstalled = $true
-        $script:LegacyCleanupCommands.Clear()
-        if (Remove-LegacySwitcherIfPresent 'MOCK' $legacyStatus { param($Package) $false }) { throw 'Self-test failed: rejected legacy cleanup result.' }
-        if ($script:LegacyCleanupCommands.Count -ne 0 -or -not $script:LegacyMockInstalled) { throw 'Self-test failed: rejected legacy cleanup changed the device.' }
-    } finally {
-        foreach ($entry in $legacyCleanupOriginals.GetEnumerator()) {
-            Set-Item "Function:$($entry.Key)" -Value $entry.Value
-        }
-    }
-
     $fastModeOriginals = @{
         'Get-ReadyQuest' = (Get-Item Function:Get-ReadyQuest).ScriptBlock
         'Ensure-SwitcherInstalled' = (Get-Item Function:Ensure-SwitcherInstalled).ScriptBlock
@@ -1516,7 +1461,7 @@ if ($SelfTest) {
         }
     }
 
-    Write-Output 'SELF_TEST_OK_XAML_OK_PAYLOAD_OK_STATE_MACHINE_OK_HOME_IMPORT_OK_COOKED_PICKER_OK_PROFESSIONAL_NAMING_OK_SIGNATURE_MIGRATION_OK_LEGACY_CLEANUP_OK_FAST_MODES_NO_SHIZUKU_OK'
+    Write-Output 'SELF_TEST_OK_XAML_OK_PAYLOAD_OK_STATE_MACHINE_OK_HOME_IMPORT_OK_COOKED_PICKER_OK_PROFESSIONAL_NAMING_OK_SIGNATURE_MIGRATION_OK_FAST_MODES_NO_SHIZUKU_OK'
     exit 0
 }
 
@@ -1551,21 +1496,6 @@ $confirmSwitcherMigration = {
         [System.Windows.MessageBoxButton]::YesNo,
         [System.Windows.MessageBoxImage]::Warning,
         [System.Windows.MessageBoxResult]::No
-    )
-    return $choice -eq [System.Windows.MessageBoxResult]::Yes
-}
-
-$confirmLegacySwitcherRemoval = {
-    param([object]$LegacyPackage)
-    $version = if ($LegacyPackage.VersionName) { " version $($LegacyPackage.VersionName)" } else { '' }
-    $message = "The new Quest Home Switcher has been installed and verified.`n`nAn older test build$version is still installed as a separate app. Keeping it would leave two Switcher entries in your Quest library.`n`nRemove only the legacy Quest Home Switcher now? Shizuku, pairing data, and every Home APK remain untouched."
-    $choice = [System.Windows.MessageBox]::Show(
-        $window,
-        $message,
-        'Remove legacy Switcher duplicate?',
-        [System.Windows.MessageBoxButton]::YesNo,
-        [System.Windows.MessageBoxImage]::Question,
-        [System.Windows.MessageBoxResult]::Yes
     )
     return $choice -eq [System.Windows.MessageBoxResult]::Yes
 }
@@ -1612,7 +1542,7 @@ function Refresh-StatusCards {
 }
 
 function Complete-SwitcherSetup([string]$Serial) {
-    $installed = Ensure-SwitcherInstalled $Serial $updateStatus $confirmSwitcherMigration $confirmLegacySwitcherRemoval
+    $installed = Ensure-SwitcherInstalled $Serial $updateStatus $confirmSwitcherMigration
     Start-Switcher $Serial $updateStatus
     $script:SetupComplete = $true
     $stageTitleText.Text = 'SETUP COMPLETE'
@@ -1773,7 +1703,7 @@ $fastSwitcherButton.Add_Click({
     try {
         $stageTitleText.Text = 'OPTIONAL ADB-ONLY TOOL'
         $detailText.Text = 'Checking only the Quest connection and Quest Home Switcher package. Shizuku setup, pairing, and starter functions are not used by this action.'
-        $installed = Invoke-SwitcherFastMode $updateStatus $confirmSwitcherMigration $confirmLegacySwitcherRemoval
+        $installed = Invoke-SwitcherFastMode $updateStatus $confirmSwitcherMigration
         $statusText.Text = "Quest Home Switcher $($installed.Version) is ready and open"
         $detailText.Text = 'The Switcher payload was verified, its installed version was checked, and the app was opened. This optional action did not inspect, start, update, pair, or configure Shizuku.'
         $progress.Value = 100

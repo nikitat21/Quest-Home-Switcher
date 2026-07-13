@@ -61,7 +61,7 @@ Android deliberately requires the pairing code to be entered by the user. The se
 
 Setup verifies its embedded APK, installs or updates Quest Home Switcher, verifies the installed version, and opens the app.
 
-When the setup screen says **SETUP COMPLETE**, select **SETUP COMPLETE - CLOSE**. After the release is installed and verified, setup may offer to remove a legacy Quest Home Switcher test app. This cleanup is optional and does not remove Shizuku, its pairing, or Home files.
+When the setup screen says **SETUP COMPLETE**, select **SETUP COMPLETE - CLOSE**. If Android reports that an installed Switcher with the current package ID uses a different signing key, setup shows a detailed confirmation before removing only that conflicting Switcher installation and retrying the verified release. Declining leaves the installed app unchanged. Shizuku, its pairing, and Home files are never removed by this migration.
 
 ### 6. Approve the app permission
 

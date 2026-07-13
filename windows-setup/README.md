@@ -24,7 +24,7 @@ The Switcher APK is embedded in the EXE. At launch, both the controller and APK 
 
 ### Safe signing-key migration
 
-An older test Switcher may use a legacy package or a different signing key. Setup installs and verifies the release first, then shows a clearly scoped **Yes/No warning** before removing only the legacy test app. If the user declines, the old Switcher remains installed.
+An installed Switcher with the current package ID may use a different signing key and therefore cannot be updated in place. Setup first attempts the normal non-destructive update. Only when Android explicitly returns `INSTALL_FAILED_UPDATE_INCOMPATIBLE` does it show a clearly scoped **Yes/No warning**. If the user agrees, setup removes only `io.github.nikitat21.questhomeswitcher` and retries the verified release payload. If the user declines, the installed Switcher remains unchanged.
 
 This migration never uninstalls, stops, updates, or reconfigures Shizuku. Shizuku pairing and Home APK files under `Download/Quest Homes` remain untouched. Removing the old Switcher does clear only that app's settings, which is stated before confirmation.
 
@@ -66,8 +66,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\Build.ps1
 ## Safety rules
 
 - No automatic Shizuku uninstall exists in this version.
-- A conflicting or legacy Switcher is removed only after a clearly scoped warning and explicit user approval; legacy cleanup runs only after the release install is verified.
-- The migration command is restricted to the known legacy Quest Home Switcher package; declining it performs no uninstall.
+- A conflicting installation of the current Switcher package is removed only after Android reports a signing-key mismatch and the user explicitly approves the clearly scoped warning.
+- The migration command is restricted to `io.github.nikitat21.questhomeswitcher`; declining it performs no uninstall.
 - The Home importer does not rely on APK file names to decide compatibility.
 - Shizuku comes only from official `RikkaApps/Shizuku` GitHub releases.
 - Platform Tools come only from Google.

@@ -41,7 +41,7 @@ No additional text or checksum file is required for normal installation. Downloa
 
 ## Upgrade note
 
-An earlier development build may use a legacy package or a different signing certificate and cannot always be updated in place. The Windows setup installs and verifies the release first, then offers to remove the legacy test app. Declining leaves the old installation unchanged. Shizuku, its pairing, and Home files are not removed.
+An earlier development build with the current package ID may use a different signing certificate and cannot be updated in place. The Windows setup first attempts a normal update. Only when Android reports a signing-key mismatch does setup ask for permission to remove that conflicting Switcher installation and retry the verified release. Declining leaves the installed app unchanged. Shizuku, its pairing, and Home files are not removed.
 
 ## Known limitations
 
