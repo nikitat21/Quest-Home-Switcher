@@ -28,7 +28,7 @@ $script:SwitcherActivity = 'io.github.nikitat21.questhomeswitcher/.MainActivity'
 $script:SwitcherApk = Join-Path $script:DistributionRoot 'Quest-Home-Switcher.apk'
 $script:ExpectedSwitcherVersionCode = 14
 $script:ExpectedSwitcherVersionName = '1.1'
-$script:ExpectedSwitcherSha256 = '68FA680A7315172197951E7892D3CD306F8BE8A2E8FD8074D94D7B9B5D163DBA'
+$script:ExpectedSwitcherSha256 = 'BB077E351F66363D7EB8C057A488DB85A2D2004E63AF1F3497FFC83ECCD4E13F'
 $script:SwitcherPayloadSource = 'Embedded'
 $script:HomePackageIdentifier = 'com.meta.shell.env.footprint.haven2025'
 $script:HomeImportDirectory = '/sdcard/Download/Quest Homes'
@@ -1599,7 +1599,7 @@ if ($SelfTest) {
         $script:SwitcherApk = $originalUpdateState.SwitcherApk
         $script:ExpectedSwitcherVersionCode = 14
         $script:ExpectedSwitcherVersionName = '1.1'
-        $script:ExpectedSwitcherSha256 = '68FA680A7315172197951E7892D3CD306F8BE8A2E8FD8074D94D7B9B5D163DBA'
+        $script:ExpectedSwitcherSha256 = 'BB077E351F66363D7EB8C057A488DB85A2D2004E63AF1F3497FFC83ECCD4E13F'
         $script:SwitcherPayloadSource = 'Embedded'
         $silentUpdateStatus = { param([string]$Text, [int]$Percent) }
         $verifiedUpdate = Sync-ProjectRelease $silentUpdateStatus
@@ -1628,7 +1628,7 @@ if ($SelfTest) {
         $script:SwitcherApk = $originalUpdateState.SwitcherApk
         $script:ExpectedSwitcherVersionCode = 14
         $script:ExpectedSwitcherVersionName = '1.1'
-        $script:ExpectedSwitcherSha256 = '68FA680A7315172197951E7892D3CD306F8BE8A2E8FD8074D94D7B9B5D163DBA'
+        $script:ExpectedSwitcherSha256 = 'BB077E351F66363D7EB8C057A488DB85A2D2004E63AF1F3497FFC83ECCD4E13F'
         $script:SwitcherPayloadSource = 'Embedded'
         $equalRelease = Sync-ProjectRelease $silentUpdateStatus
         if ($equalRelease.Mode -ne 'Current' -or $script:UpdateMockDownloadCalls -ne 0 -or $script:SwitcherPayloadSource -ne 'Embedded') {
@@ -1668,7 +1668,7 @@ if ($SelfTest) {
         $script:SwitcherApk = $originalUpdateState.SwitcherApk
         $script:ExpectedSwitcherVersionCode = 14
         $script:ExpectedSwitcherVersionName = '1.1'
-        $script:ExpectedSwitcherSha256 = '68FA680A7315172197951E7892D3CD306F8BE8A2E8FD8074D94D7B9B5D163DBA'
+        $script:ExpectedSwitcherSha256 = 'BB077E351F66363D7EB8C057A488DB85A2D2004E63AF1F3497FFC83ECCD4E13F'
         $script:SwitcherPayloadSource = 'Embedded'
         $offlineResult = Sync-ProjectRelease $silentUpdateStatus
         if ($offlineResult.Mode -ne 'EmbeddedFallback' -or $script:SwitcherPayloadSource -ne 'Embedded' -or

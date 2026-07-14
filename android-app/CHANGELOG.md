@@ -9,7 +9,7 @@
 - Avoid repeated hashing of unchanged large carrier APKs and skip unsafe partial backups of split packages.
 - Made post-reload integrity verification use the same robust multi-path checks.
 - Improved Shizuku status refresh and serialized Home operations to avoid stale UI state.
-- Added a direct shortcut to Meta's Shell Debug settings.
+- Kept internal debug shortcuts out of the official release UI.
 
 ## 1.0 - 2026-07-13
 

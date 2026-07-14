@@ -9,7 +9,7 @@ $script = Join-Path $root 'QuestHomeSwitcherSetup.ps1'
 $payload = Join-Path $root 'Quest-Home-Switcher.apk'
 $icon = Join-Path $root 'branding\Quest-Home-Switcher.ico'
 $output = Join-Path $root 'Quest-Home-Switcher-Setup-v1.1.exe'
-$expectedPayloadHash = '68FA680A7315172197951E7892D3CD306F8BE8A2E8FD8074D94D7B9B5D163DBA'
+$expectedPayloadHash = 'BB077E351F66363D7EB8C057A488DB85A2D2004E63AF1F3497FFC83ECCD4E13F'
 
 foreach ($required in @($source, $script, $payload, $icon)) {
     if (-not (Test-Path -LiteralPath $required)) {

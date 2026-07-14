@@ -15,6 +15,6 @@ Version 1.1 is a reliability hotfix for Home activation on different Meta Quest 
 
 - Shizuku state refresh is more reliable after startup.
 - Home operations cannot overlap and leave stale status behind.
-- Meta Shell Debug settings can be opened directly from the app.
+- Internal debug shortcuts are excluded from the official release UI.
 
 Users of setup 1.0 must download setup 1.1 once. Setup 1.1 introduces the verified update path used by later releases.

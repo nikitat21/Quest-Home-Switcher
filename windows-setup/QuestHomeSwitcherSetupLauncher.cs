@@ -16,7 +16,7 @@ internal static class Program
 {
     private const string ScriptResourceName = "QuestHomeSwitcherSetupAssistant.QuestHomeSwitcherSetup.ps1";
     private const string PayloadResourceName = "QuestHomeSwitcherSetupAssistant.Quest-Home-Switcher.apk";
-    private const string ExpectedPayloadSha256 = "68FA680A7315172197951E7892D3CD306F8BE8A2E8FD8074D94D7B9B5D163DBA";
+    private const string ExpectedPayloadSha256 = "BB077E351F66363D7EB8C057A488DB85A2D2004E63AF1F3497FFC83ECCD4E13F";
 
     [STAThread]
     private static void Main(string[] args)

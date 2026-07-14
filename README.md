@@ -65,7 +65,6 @@ The setup validates every selected APK and copies accepted Homes to `Download/Qu
 - Metadata caching and scene-based duplicate grouping for faster refreshes.
 - Pre-install validation, post-install verification, and automatic rollback on failure.
 - Horizon Home reload after a successful switch; a full headset reboot is normally unnecessary.
-- One-tap access to Meta's built-in **Debug Settings** when Root or Shizuku is ready; the Switcher never changes a debug preference automatically.
 - Guided Windows setup that preserves an already-running Shizuku server.
 - Optional multi-file Home importer with readable names, collision handling, and upload verification.
 
@@ -105,7 +104,6 @@ Read [Troubleshooting](docs/TROUBLESHOOTING.md) before retrying a failed activat
 - Android intentionally requires the user to approve USB debugging, the one-time pairing code, and the Switcher's Shizuku permission.
 - Rootless mode needs compatible NoRoot-Spoof Home APKs. A normal Android APK is rejected even if its filename looks like a Home.
 - Firmware, root frameworks, and third-party Home packages vary. Root behavior and Home compatibility cannot be guaranteed on every Horizon OS build.
-- Meta Debug Settings is an internal, build-dependent panel. The launcher can stop working after a Horizon OS update, and visible controls are not a promise that Meta's remote/account-gated feature is usable.
 - A third-party APK can contain unsafe code. Only use files from sources you trust.
 
 ## Build from source

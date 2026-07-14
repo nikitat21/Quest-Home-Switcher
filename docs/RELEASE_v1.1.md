@@ -25,7 +25,6 @@ Automatic rollback remains enabled. A readable single-APK Home is backed up and 
 
 - More reliable Shizuku state refresh after startup and foreground changes.
 - Home actions are serialized so refresh and activation cannot leave stale state behind.
-- Direct access to Meta's built-in Debug Settings when Root or Shizuku is ready.
 - Setup 1.1 introduces a verified GitHub Release update path while retaining its embedded offline APK.
 
 ## Updating from 1.0

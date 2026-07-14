@@ -3,6 +3,7 @@ package io.github.nikitat21.questhomeswitcher.ui
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import io.github.nikitat21.questhomeswitcher.BuildConfig
 import io.github.nikitat21.questhomeswitcher.data.HomeRepository
 import io.github.nikitat21.questhomeswitcher.domain.ActivateHomeUseCase
 import io.github.nikitat21.questhomeswitcher.domain.ActivationResult
@@ -229,6 +230,7 @@ class HomeSwitcherViewModel(application: Application) : AndroidViewModel(applica
     }
 
     fun openMetaDebugSettings() {
+        if (!BuildConfig.DEBUG) return
         val runner = when (privilegeCoordinator.state.value) {
             PrivilegeState.ROOT -> rootRunner
             PrivilegeState.READY -> shellRunner

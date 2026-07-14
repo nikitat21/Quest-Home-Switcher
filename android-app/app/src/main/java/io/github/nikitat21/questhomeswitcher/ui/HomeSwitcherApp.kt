@@ -71,6 +71,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import io.github.nikitat21.questhomeswitcher.BuildConfig
 import io.github.nikitat21.questhomeswitcher.R
 import io.github.nikitat21.questhomeswitcher.domain.HomeEnvironment
 import io.github.nikitat21.questhomeswitcher.domain.HomeEnvironmentType
@@ -110,6 +111,7 @@ fun HomeSwitcherApp(
         HomeSwitcherScreen(
             state = state,
             formatSize = viewModel::formatSize,
+            showDebugSettings = BuildConfig.DEBUG,
             onRefresh = viewModel::refresh,
             onOpenDebugSettings = viewModel::openMetaDebugSettings,
             onRequestShizuku = viewModel::requestShizukuPermission,
@@ -127,6 +129,7 @@ fun HomeSwitcherApp(
 private fun HomeSwitcherScreen(
     state: HomeSwitcherUiState,
     formatSize: (Long) -> String,
+    showDebugSettings: Boolean,
     onRefresh: () -> Unit,
     onOpenDebugSettings: () -> Unit,
     onRequestShizuku: () -> Unit,
@@ -151,6 +154,7 @@ private fun HomeSwitcherScreen(
         AppHeader(
             homeCount = state.homes.size,
             isBusy = state.isBusy,
+            showDebugSettings = showDebugSettings,
             debugSettingsEnabled = state.canOpenMetaDebugSettings(),
             onRefresh = onRefresh,
             onOpenDebugSettings = onOpenDebugSettings,
@@ -196,6 +200,7 @@ private fun HomeSwitcherScreen(
 private fun AppHeader(
     homeCount: Int,
     isBusy: Boolean,
+    showDebugSettings: Boolean,
     debugSettingsEnabled: Boolean,
     onRefresh: () -> Unit,
     onOpenDebugSettings: () -> Unit,
@@ -224,21 +229,23 @@ private fun AppHeader(
 
         CountBadge(homeCount)
         Spacer(Modifier.width(12.dp))
-        OutlinedButton(
-            onClick = onOpenDebugSettings,
-            enabled = debugSettingsEnabled,
-            modifier = Modifier
-                .heightIn(min = 52.dp)
-                .widthIn(min = 170.dp),
-            shape = RoundedCornerShape(14.dp),
-            border = BorderStroke(1.dp, Divider),
-            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
-        ) {
-            Icon(Icons.Rounded.Settings, contentDescription = null)
-            Spacer(Modifier.width(8.dp))
-            Text("Debug settings", fontWeight = FontWeight.SemiBold)
+        if (showDebugSettings) {
+            OutlinedButton(
+                onClick = onOpenDebugSettings,
+                enabled = debugSettingsEnabled,
+                modifier = Modifier
+                    .heightIn(min = 52.dp)
+                    .widthIn(min = 170.dp),
+                shape = RoundedCornerShape(14.dp),
+                border = BorderStroke(1.dp, Divider),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+            ) {
+                Icon(Icons.Rounded.Settings, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text("Debug settings", fontWeight = FontWeight.SemiBold)
+            }
+            Spacer(Modifier.width(10.dp))
         }
-        Spacer(Modifier.width(10.dp))
         OutlinedButton(
             onClick = onRefresh,
             enabled = !isBusy,
