@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.1 - 2026-07-14
+
+- Fixed false verification failures on Quest builds that publish the installed Home package path late.
+- Added compatibility fallbacks for older and newer Meta package-manager path commands.
+- Verify every reported base or split APK path and accept only the selected `assets/scene.zip` SHA-256.
+- Added clear expected/observed hash and package-path diagnostics while keeping automatic rollback enabled.
+- Avoid repeated hashing of unchanged large carrier APKs and skip unsafe partial backups of split packages.
+- Made post-reload integrity verification use the same robust multi-path checks.
+- Improved Shizuku status refresh and serialized Home operations to avoid stale UI state.
+- Added a direct shortcut to Meta's Shell Debug settings.
+
 ## 1.0 - 2026-07-13
 
 - Added a Quest-friendly two-pane Home library with search, refresh, active-Home status, and clear actions.

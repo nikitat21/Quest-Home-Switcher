@@ -8,8 +8,8 @@ $source = Join-Path $root 'QuestHomeSwitcherSetupLauncher.cs'
 $script = Join-Path $root 'QuestHomeSwitcherSetup.ps1'
 $payload = Join-Path $root 'Quest-Home-Switcher.apk'
 $icon = Join-Path $root 'branding\Quest-Home-Switcher.ico'
-$output = Join-Path $root 'Quest-Home-Switcher-Setup.exe'
-$expectedPayloadHash = '57398CD94654694FDCFF01B7C73F190D4B8E6F96234CD5BDB7FC21C3328A3F17'
+$output = Join-Path $root 'Quest-Home-Switcher-Setup-v1.1.exe'
+$expectedPayloadHash = '68FA680A7315172197951E7892D3CD306F8BE8A2E8FD8074D94D7B9B5D163DBA'
 
 foreach ($required in @($source, $script, $payload, $icon)) {
     if (-not (Test-Path -LiteralPath $required)) {
@@ -19,7 +19,7 @@ foreach ($required in @($source, $script, $payload, $icon)) {
 
 $actualPayloadHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $payload).Hash
 if ($actualPayloadHash -ne $expectedPayloadHash) {
-    throw 'Quest-Home-Switcher.apk does not match the expected permanently signed v1.0 payload.'
+    throw 'Quest-Home-Switcher.apk does not match the expected permanently signed v1.1 payload.'
 }
 
 $compilerCandidates = @(
@@ -52,7 +52,7 @@ if (-not $SkipSelfTest) {
     # by itself to an isolated build-test directory before the embedded-payload test.
     $testBase = [System.IO.Path]::GetFullPath((Join-Path ([System.IO.Path]::GetTempPath()) 'QuestHomeSwitcherSetupBuildTest'))
     $testRoot = [System.IO.Path]::GetFullPath((Join-Path $testBase ([guid]::NewGuid().ToString('N'))))
-    $testExe = Join-Path $testRoot 'Quest-Home-Switcher-Setup.exe'
+    $testExe = Join-Path $testRoot 'Quest-Home-Switcher-Setup-v1.1.exe'
     try {
         New-Item -ItemType Directory -Force -Path $testRoot | Out-Null
         Copy-Item -LiteralPath $output -Destination $testExe

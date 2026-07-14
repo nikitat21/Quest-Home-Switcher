@@ -23,16 +23,16 @@ Use the files from the [latest GitHub Release](https://github.com/nikitat21/Ques
 
 | File | Choose this when |
 | --- | --- |
-| `Quest-Home-Switcher-Setup-v1.0.exe` | You want the recommended guided Windows installation, Shizuku setup, updates, and optional Home import. |
-| `Quest-Home-Switcher-v1.0.apk` | You already know how to sideload an APK, or you use a rooted Quest without Shizuku. |
+| `Quest-Home-Switcher-Setup-v1.1.exe` | You want the recommended guided Windows installation, Shizuku setup, verified updates, and optional Home import. |
+| `Quest-Home-Switcher-v1.1.apk` | You already know how to sideload an APK, or you use a rooted Quest without Shizuku. |
 
-See [the v1.0 release notes](docs/RELEASE_v1.0.md) for the changes and known limitations.
+See [the v1.1 release notes](docs/RELEASE_v1.1.md) for the current fixes and known limitations.
 
 ## Quick start
 
 1. Enable Meta Developer Mode for the headset and connect the Quest to a Windows PC over USB.
 2. Put on the headset and approve the USB debugging prompt. Enable **Always allow from this computer** when it is your own PC.
-3. Run `Quest-Home-Switcher-Setup-v1.0.exe` and select **SET UP / REPAIR**.
+3. Run `Quest-Home-Switcher-Setup-v1.1.exe` and select **SET UP / REPAIR**.
 4. Follow the headset instructions. If Shizuku is already running, setup leaves it untouched and goes directly to installing or updating Quest Home Switcher.
 5. Place compatible Home APKs in `Download/Quest Homes`, or use **IMPORT HOME APKS** in setup.
 6. Open Quest Home Switcher, approve its Shizuku permission once when asked, select a Home, and choose **Apply Home**.
@@ -65,6 +65,7 @@ The setup validates every selected APK and copies accepted Homes to `Download/Qu
 - Metadata caching and scene-based duplicate grouping for faster refreshes.
 - Pre-install validation, post-install verification, and automatic rollback on failure.
 - Horizon Home reload after a successful switch; a full headset reboot is normally unnecessary.
+- One-tap access to Meta's built-in **Debug Settings** when Root or Shizuku is ready; the Switcher never changes a debug preference automatically.
 - Guided Windows setup that preserves an already-running Shizuku server.
 - Optional multi-file Home importer with readable names, collision handling, and upload verification.
 
@@ -104,6 +105,7 @@ Read [Troubleshooting](docs/TROUBLESHOOTING.md) before retrying a failed activat
 - Android intentionally requires the user to approve USB debugging, the one-time pairing code, and the Switcher's Shizuku permission.
 - Rootless mode needs compatible NoRoot-Spoof Home APKs. A normal Android APK is rejected even if its filename looks like a Home.
 - Firmware, root frameworks, and third-party Home packages vary. Root behavior and Home compatibility cannot be guaranteed on every Horizon OS build.
+- Meta Debug Settings is an internal, build-dependent panel. The launcher can stop working after a Horizon OS update, and visible controls are not a promise that Meta's remote/account-gated feature is usable.
 - A third-party APK can contain unsafe code. Only use files from sources you trust.
 
 ## Build from source

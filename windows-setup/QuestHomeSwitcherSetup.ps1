@@ -14,15 +14,22 @@ $script:RuntimeRoot = Join-Path $env:LOCALAPPDATA 'QuestHomeSwitcherSetup'
 $script:AdbPath = $null
 $script:UiInitialized = $false
 $script:SetupComplete = $false
+$script:SetupVersion = [System.Version]::Parse('1.1.0')
+$script:ProjectReleaseApi = 'https://api.github.com/repos/nikitat21/Quest-Home-Switcher/releases/latest'
+$script:ProjectUpdateRoot = Join-Path $script:RuntimeRoot 'updates'
+$script:ProjectReleaseChecked = $false
+$script:ProjectReleaseResult = $null
+$script:SetupUpdatePrompted = $false
 
 $script:ShizukuPackage = 'moe.shizuku.privileged.api'
 $script:ShizukuActivity = 'moe.shizuku.privileged.api/moe.shizuku.manager.MainActivity'
 $script:SwitcherPackage = 'io.github.nikitat21.questhomeswitcher'
 $script:SwitcherActivity = 'io.github.nikitat21.questhomeswitcher/.MainActivity'
 $script:SwitcherApk = Join-Path $script:DistributionRoot 'Quest-Home-Switcher.apk'
-$script:ExpectedSwitcherVersionCode = 13
-$script:ExpectedSwitcherVersionName = '1.0'
-$script:ExpectedSwitcherSha256 = '57398CD94654694FDCFF01B7C73F190D4B8E6F96234CD5BDB7FC21C3328A3F17'
+$script:ExpectedSwitcherVersionCode = 14
+$script:ExpectedSwitcherVersionName = '1.1'
+$script:ExpectedSwitcherSha256 = '68FA680A7315172197951E7892D3CD306F8BE8A2E8FD8074D94D7B9B5D163DBA'
+$script:SwitcherPayloadSource = 'Embedded'
 $script:HomePackageIdentifier = 'com.meta.shell.env.footprint.haven2025'
 $script:HomeImportDirectory = '/sdcard/Download/Quest Homes'
 $script:HomeImportHistoryFile = Join-Path $script:RuntimeRoot 'home-import-directory.txt'
@@ -397,6 +404,48 @@ function Get-ShizukuState([string]$Serial) {
     }
 }
 
+function ConvertTo-ProjectVersion([string]$Value) {
+    if ([string]::IsNullOrWhiteSpace($Value)) { return $null }
+    $match = [regex]::Match($Value.Trim(), '^(0|[1-9]\d*)\.(0|[1-9]\d*)(?:\.(0|[1-9]\d*))?$')
+    if (-not $match.Success) { return $null }
+    $patch = if ($match.Groups[3].Success) { $match.Groups[3].Value } else { '0' }
+    try {
+        return [System.Version]::Parse("$($match.Groups[1].Value).$($match.Groups[2].Value).$patch")
+    } catch {
+        return $null
+    }
+}
+
+function Get-ProjectReleaseVersionCode([object]$Release) {
+    if (-not $Release) { throw 'The GitHub release metadata is incomplete.' }
+    $markerPattern = '<!-- quest-home-switcher-version-code: ([1-9][0-9]*) -->'
+    $markerOccurrences = [regex]::Matches([string]$Release.body, '<!-- quest-home-switcher-version-code:')
+    $matches = [regex]::Matches([string]$Release.body, $markerPattern)
+    if ($markerOccurrences.Count -ne 1 -or $matches.Count -ne 1) {
+        throw 'The GitHub release must contain exactly one valid Quest Home Switcher version-code marker.'
+    }
+    $versionCode = 0L
+    if (-not [int64]::TryParse($matches[0].Groups[1].Value, [ref]$versionCode) -or
+        $versionCode -lt 1 -or $versionCode -gt [int]::MaxValue) {
+        throw 'The GitHub release contains an invalid Android version code.'
+    }
+    return [int64]$versionCode
+}
+
+function Test-SetupFileVersionMatch([string]$FileVersion, [string]$ReleaseVersion) {
+    $expected = ConvertTo-ProjectVersion $ReleaseVersion
+    if (-not $expected -or [string]::IsNullOrWhiteSpace($FileVersion)) { return $false }
+    try {
+        $actual = [System.Version]::Parse($FileVersion.Trim())
+    } catch {
+        return $false
+    }
+    if ($actual.Major -lt 0 -or $actual.Minor -lt 0 -or $actual.Revision -gt 0) { return $false }
+    $build = if ($actual.Build -ge 0) { $actual.Build } else { 0 }
+    $normalized = [System.Version]::Parse("$($actual.Major).$($actual.Minor).$build")
+    return $normalized.CompareTo($expected) -eq 0
+}
+
 function Get-SwitcherState([string]$Serial) {
     $package = Get-PackageInfo $Serial $script:SwitcherPackage
     if (-not $package.Installed) {
@@ -407,9 +456,16 @@ function Get-SwitcherState([string]$Serial) {
             Detail = 'Quest Home Switcher is not installed.'
         }
     }
+    $installedVersion = ConvertTo-ProjectVersion $package.VersionName
+    $expectedVersion = ConvertTo-ProjectVersion $script:ExpectedSwitcherVersionName
+    $versionComparison = if ($installedVersion -and $expectedVersion) {
+        $installedVersion.CompareTo($expectedVersion)
+    } else {
+        -1
+    }
     $state = if (
-        $package.VersionCode -gt $script:ExpectedSwitcherVersionCode -or
-        ($package.VersionCode -eq $script:ExpectedSwitcherVersionCode -and $package.VersionName -eq $script:ExpectedSwitcherVersionName)
+        ($versionComparison -eq 0 -and $package.VersionCode -eq $script:ExpectedSwitcherVersionCode) -or
+        ($versionComparison -gt 0 -and $package.VersionCode -gt $script:ExpectedSwitcherVersionCode)
     ) { 'Current' } else { 'Outdated' }
     return [pscustomobject]@{
         State = $state
@@ -417,6 +473,216 @@ function Get-SwitcherState([string]$Serial) {
         VersionCode = $package.VersionCode
         Detail = "Installed version $($package.VersionName) (code $($package.VersionCode))."
     }
+}
+
+function Get-ProjectReleaseAsset(
+    [object]$Release,
+    [string]$ExpectedName,
+    [int64]$MinimumBytes = 262144,
+    [int64]$MaximumBytes = 268435456
+) {
+    if (-not $Release -or [string]::IsNullOrWhiteSpace($ExpectedName)) {
+        throw 'The GitHub release metadata is incomplete.'
+    }
+    $matches = @($Release.assets | Where-Object { [string]$_.name -ceq $ExpectedName })
+    if ($matches.Count -ne 1) {
+        throw "The latest GitHub release does not contain exactly one $ExpectedName asset."
+    }
+    $asset = $matches[0]
+    if ([string]$asset.state -cne 'uploaded') {
+        throw "$ExpectedName is not fully uploaded on GitHub."
+    }
+    $size = [int64]$asset.size
+    if ($size -lt $MinimumBytes -or $size -gt $MaximumBytes) {
+        throw "$ExpectedName has an unexpected download size."
+    }
+    $digestMatch = [regex]::Match([string]$asset.digest, '^sha256:([0-9a-fA-F]{64})$')
+    if (-not $digestMatch.Success) {
+        throw "$ExpectedName has no usable GitHub SHA-256 digest."
+    }
+    $expectedUrl = "https://github.com/nikitat21/Quest-Home-Switcher/releases/download/$($Release.tag_name)/$ExpectedName"
+    if ([string]$asset.browser_download_url -cne $expectedUrl) {
+        throw "$ExpectedName has an unexpected GitHub download URL."
+    }
+    return [pscustomobject]@{
+        Name = $ExpectedName
+        Size = $size
+        Sha256 = $digestMatch.Groups[1].Value.ToUpperInvariant()
+        Url = $expectedUrl
+        Tag = [string]$Release.tag_name
+    }
+}
+
+function Save-VerifiedProjectAsset([object]$Asset, [string]$DestinationRoot = $script:ProjectUpdateRoot) {
+    if (-not $Asset -or [string]::IsNullOrWhiteSpace($DestinationRoot)) {
+        throw 'A verified GitHub asset and destination are required.'
+    }
+    if ([string]$Asset.Name -notmatch '^[A-Za-z0-9._-]+$' -or [string]$Asset.Tag -notmatch '^v[0-9]+\.[0-9]+(?:\.[0-9]+)?$') {
+        throw 'The GitHub asset path is not safe.'
+    }
+    $versionRoot = Join-Path ([System.IO.Path]::GetFullPath($DestinationRoot)) $Asset.Tag
+    New-Item -ItemType Directory -Path $versionRoot -Force | Out-Null
+    $destination = Join-Path $versionRoot $Asset.Name
+    $partial = "$destination.$PID.part"
+
+    try {
+        if (Test-Path -LiteralPath $destination -PathType Leaf) {
+            $existing = Get-Item -LiteralPath $destination
+            $existingHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $destination).Hash
+            if ($existing.Length -eq [int64]$Asset.Size -and
+                [string]::Equals($existingHash, [string]$Asset.Sha256, [System.StringComparison]::OrdinalIgnoreCase)) {
+                return $destination
+            }
+            Remove-Item -LiteralPath $destination -Force
+        }
+        if (Test-Path -LiteralPath $partial) { Remove-Item -LiteralPath $partial -Force }
+
+        Invoke-WebRequest -UseBasicParsing -Uri $Asset.Url -OutFile $partial
+        $download = Get-Item -LiteralPath $partial -ErrorAction Stop
+        if ($download.Length -ne [int64]$Asset.Size) {
+            throw "$($Asset.Name) did not match the size published by GitHub."
+        }
+        $actualHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $partial).Hash
+        if (-not [string]::Equals($actualHash, [string]$Asset.Sha256, [System.StringComparison]::OrdinalIgnoreCase)) {
+            throw "$($Asset.Name) failed its GitHub SHA-256 verification."
+        }
+        Move-Item -LiteralPath $partial -Destination $destination
+        return $destination
+    } finally {
+        if (Test-Path -LiteralPath $partial) { Remove-Item -LiteralPath $partial -Force -ErrorAction SilentlyContinue }
+    }
+}
+
+function Sync-ProjectRelease([scriptblock]$Status) {
+    if ($script:ProjectReleaseChecked -and $script:ProjectReleaseResult) {
+        return $script:ProjectReleaseResult
+    }
+
+    $previousSecurityProtocol = [Net.ServicePointManager]::SecurityProtocol
+    try {
+        if ($Status) { & $Status 'Checking the official GitHub release...' 3 }
+        [Net.ServicePointManager]::SecurityProtocol = $previousSecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+        $headers = @{
+            'User-Agent' = 'Quest-Home-Switcher-Setup'
+            'Accept' = 'application/vnd.github+json'
+            'X-GitHub-Api-Version' = '2022-11-28'
+        }
+        $release = Invoke-RestMethod -Uri $script:ProjectReleaseApi -Headers $headers
+        if (-not $release -or $release.draft -ne $false -or $release.prerelease -ne $false) {
+            throw 'GitHub did not return a final public release.'
+        }
+        if ([string]$release.url -notmatch '^https://api\.github\.com/repos/nikitat21/Quest-Home-Switcher/releases/[0-9]+$') {
+            throw 'GitHub returned release metadata for an unexpected repository.'
+        }
+        $tagMatch = [regex]::Match([string]$release.tag_name, '^v((?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:\.(?:0|[1-9]\d*))?)$')
+        if (-not $tagMatch.Success) {
+            throw 'The latest GitHub release tag is not a supported version.'
+        }
+        $versionText = $tagMatch.Groups[1].Value
+        $releaseVersion = ConvertTo-ProjectVersion $versionText
+        $payloadVersion = ConvertTo-ProjectVersion $script:ExpectedSwitcherVersionName
+        if (-not $releaseVersion -or -not $payloadVersion) {
+            throw 'The release version could not be verified.'
+        }
+
+        $needsApk = $releaseVersion.CompareTo($payloadVersion) -gt 0
+        $needsSetup = $releaseVersion.CompareTo($script:SetupVersion) -gt 0
+        if (-not $needsApk -and -not $needsSetup) {
+            $script:ProjectReleaseResult = [pscustomobject]@{
+                Mode = 'Current'
+                Version = $versionText
+                ApkVersionCode = $script:ExpectedSwitcherVersionCode
+                ApkPath = ''
+                SetupPath = ''
+                SetupSha256 = ''
+                SetupSize = 0
+                Detail = 'This setup already contains the latest release.'
+            }
+            return $script:ProjectReleaseResult
+        }
+
+        $releaseVersionCode = Get-ProjectReleaseVersionCode $release
+        if ($needsApk -and $releaseVersionCode -le $script:ExpectedSwitcherVersionCode) {
+            throw 'The newer GitHub release does not increase the Android version code.'
+        }
+
+        $apkName = "Quest-Home-Switcher-v$versionText.apk"
+        $setupName = "Quest-Home-Switcher-Setup-v$versionText.exe"
+        $apkAsset = Get-ProjectReleaseAsset $release $apkName
+        $setupAsset = Get-ProjectReleaseAsset $release $setupName
+        $apkPath = if ($needsApk) { Save-VerifiedProjectAsset $apkAsset } else { '' }
+        $setupPath = if ($needsSetup) { Save-VerifiedProjectAsset $setupAsset } else { '' }
+
+        # Change the active payload only after every required release asset passed
+        # GitHub's independently published digest and exact-size verification.
+        if ($needsApk) {
+            $script:SwitcherApk = $apkPath
+            $script:ExpectedSwitcherVersionName = $versionText
+            $script:ExpectedSwitcherVersionCode = $releaseVersionCode
+            $script:ExpectedSwitcherSha256 = $apkAsset.Sha256
+            $script:SwitcherPayloadSource = 'Remote'
+        }
+        $script:ProjectReleaseResult = [pscustomobject]@{
+            Mode = 'Updated'
+            Version = $versionText
+            ApkVersionCode = $releaseVersionCode
+            ApkPath = $apkPath
+            SetupPath = $setupPath
+            SetupSha256 = if ($needsSetup) { $setupAsset.Sha256 } else { '' }
+            SetupSize = if ($needsSetup) { $setupAsset.Size } else { 0 }
+            Detail = "Verified release v$versionText is ready."
+        }
+        return $script:ProjectReleaseResult
+    } catch {
+        $script:ProjectReleaseResult = [pscustomobject]@{
+            Mode = 'EmbeddedFallback'
+            Version = $script:ExpectedSwitcherVersionName
+            ApkVersionCode = $script:ExpectedSwitcherVersionCode
+            ApkPath = ''
+            SetupPath = ''
+            SetupSha256 = ''
+            SetupSize = 0
+            Detail = 'The online release could not be verified. The included, SHA-256-verified Switcher will be used instead.'
+            Diagnostic = $_.Exception.Message
+        }
+        return $script:ProjectReleaseResult
+    } finally {
+        [Net.ServicePointManager]::SecurityProtocol = $previousSecurityProtocol
+        $script:ProjectReleaseChecked = $true
+    }
+}
+
+function Start-VerifiedSetupUpdate([object]$ReleaseResult, [object]$Owner) {
+    if (-not $ReleaseResult -or [string]::IsNullOrWhiteSpace([string]$ReleaseResult.SetupPath)) {
+        return $false
+    }
+    if ($script:SetupUpdatePrompted) { return $false }
+    $path = [System.IO.Path]::GetFullPath([string]$ReleaseResult.SetupPath)
+    if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
+        throw 'The verified setup update is no longer available.'
+    }
+    $file = Get-Item -LiteralPath $path
+    $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $path).Hash
+    if ($file.Length -ne [int64]$ReleaseResult.SetupSize -or
+        -not [string]::Equals($hash, [string]$ReleaseResult.SetupSha256, [System.StringComparison]::OrdinalIgnoreCase)) {
+        throw 'The staged setup update failed its final integrity check.'
+    }
+    if (-not (Test-SetupFileVersionMatch $file.VersionInfo.FileVersion ([string]$ReleaseResult.Version))) {
+        throw 'The staged setup file version does not match its GitHub release tag. It will not be opened.'
+    }
+    $script:SetupUpdatePrompted = $true
+    $choice = [System.Windows.MessageBox]::Show(
+        $Owner,
+        "Quest Home Switcher Setup v$($ReleaseResult.Version) was downloaded and verified from the official GitHub release.`n`nOpen the updated setup now?",
+        'Verified setup update ready',
+        [System.Windows.MessageBoxButton]::YesNo,
+        [System.Windows.MessageBoxImage]::Information,
+        [System.Windows.MessageBoxResult]::Yes
+    )
+    if ($choice -ne [System.Windows.MessageBoxResult]::Yes) { return $false }
+    Start-Process -FilePath $path
+    if ($Owner) { $Owner.Close() }
+    return $true
 }
 
 function Get-Shizuku117Apk {
@@ -576,6 +842,9 @@ function Test-SwitcherPayload {
 }
 
 function Invoke-SwitcherSignatureMigration([string]$Serial, [scriptblock]$Status, [scriptblock]$ConfirmMigration) {
+    if ($script:SwitcherPayloadSource -ne 'Embedded') {
+        throw 'The verified online update uses a different Android signing certificate. The installed Switcher was left untouched. Download a fresh setup from the official GitHub Releases page instead.'
+    }
     if (-not $ConfirmMigration -or -not (& $ConfirmMigration)) {
         throw 'Switcher replacement was canceled. The existing Quest Home Switcher remains installed and was not changed.'
     }
@@ -602,7 +871,11 @@ function Ensure-SwitcherInstalled([string]$Serial, [scriptblock]$Status, [script
         $install = Invoke-Adb @('-s', $Serial, 'install', '-r', $script:SwitcherApk) -AllowFailure
         if ($install.ExitCode -ne 0 -or $install.Output -notmatch 'Success') {
             if ($install.Output -match 'INSTALL_FAILED_UPDATE_INCOMPATIBLE') {
-                Invoke-SwitcherSignatureMigration $Serial $Status $ConfirmMigration
+                if ($script:SwitcherPayloadSource -eq 'Embedded') {
+                    Invoke-SwitcherSignatureMigration $Serial $Status $ConfirmMigration
+                } else {
+                    throw 'The verified online update could not be installed because its Android signing certificate does not match. The existing Switcher was left installed and no app was removed.'
+                }
             } else {
                 throw "Quest Home Switcher could not be installed:`n`n$($install.Output)"
             }
@@ -1187,7 +1460,7 @@ Add-Type -AssemblyName PresentationFramework, PresentationCore, WindowsBase
 
     <StackPanel>
       <Border Background="#17372F" BorderBrush="#2B806A" BorderThickness="1" Padding="10,5" HorizontalAlignment="Left">
-        <TextBlock Text="QUEST HOME SWITCHER SETUP 1.0" Foreground="#65E9C0" FontSize="12" FontWeight="Bold"/>
+        <TextBlock Text="QUEST HOME SWITCHER SETUP 1.1" Foreground="#65E9C0" FontSize="12" FontWeight="Bold"/>
       </Border>
       <TextBlock Text="One setup. One clear result." FontSize="34" FontWeight="Bold" Margin="0,14,0,6"/>
       <TextBlock Text="Detects your Quest and Shizuku state, installs the Home Switcher, then opens it for you." Foreground="#AEB9C9" FontSize="17"/>
@@ -1240,7 +1513,9 @@ $window = [Windows.Markup.XamlReader]::Load($reader)
 if ($SelfTest) {
     $required = @(
         'Find-Adb','Install-PlatformTools','Invoke-Adb','Get-QuestState','Get-ReadyQuest','Get-PackageInfo',
-        'Get-ShizukuState','Get-SwitcherState','Get-Shizuku117Apk','Get-LatestShizukuApk',
+        'Get-ShizukuState','ConvertTo-ProjectVersion','Get-ProjectReleaseVersionCode','Test-SetupFileVersionMatch','Get-SwitcherState',
+        'Get-ProjectReleaseAsset','Save-VerifiedProjectAsset','Sync-ProjectRelease','Start-VerifiedSetupUpdate',
+        'Get-Shizuku117Apk','Get-LatestShizukuApk',
         'Enable-AndroidDeveloperOptions','Open-QuestWirelessDebugging','Open-ShizukuManager',
         'Install-PairingVersion','Update-ShizukuAfterPairing','Try-StartInstalledShizuku',
         'Test-SwitcherPayload','Invoke-SwitcherSignatureMigration','Ensure-SwitcherInstalled','Start-Switcher',
@@ -1262,6 +1537,160 @@ if ($SelfTest) {
         throw 'Self-test failed: XAML window was not created.'
     }
     Test-SwitcherPayload | Out-Null
+
+    $updateTestBase = [System.IO.Path]::GetFullPath((Join-Path ([System.IO.Path]::GetTempPath()) 'QuestHomeSwitcherUpdateTest'))
+    $updateTestRoot = [System.IO.Path]::GetFullPath((Join-Path $updateTestBase ([guid]::NewGuid().ToString('N'))))
+    $hadRestFunction = Test-Path Function:Invoke-RestMethod
+    $hadWebFunction = Test-Path Function:Invoke-WebRequest
+    $originalRestFunction = if ($hadRestFunction) { (Get-Item Function:Invoke-RestMethod).ScriptBlock } else { $null }
+    $originalWebFunction = if ($hadWebFunction) { (Get-Item Function:Invoke-WebRequest).ScriptBlock } else { $null }
+    $originalUpdateState = @{
+        ProjectUpdateRoot = $script:ProjectUpdateRoot
+        ProjectReleaseChecked = $script:ProjectReleaseChecked
+        ProjectReleaseResult = $script:ProjectReleaseResult
+        SwitcherApk = $script:SwitcherApk
+        ExpectedSwitcherVersionCode = $script:ExpectedSwitcherVersionCode
+        ExpectedSwitcherVersionName = $script:ExpectedSwitcherVersionName
+        ExpectedSwitcherSha256 = $script:ExpectedSwitcherSha256
+        SwitcherPayloadSource = $script:SwitcherPayloadSource
+    }
+    try {
+        New-Item -ItemType Directory -Force -Path $updateTestRoot | Out-Null
+        $sourceApk = Join-Path $updateTestRoot 'source.apk'
+        $sourceSetup = Join-Path $updateTestRoot 'source.exe'
+        [System.IO.File]::WriteAllBytes($sourceApk, (New-Object byte[] 300000))
+        $setupBytes = New-Object byte[] 310000
+        $setupBytes[0] = 77
+        [System.IO.File]::WriteAllBytes($sourceSetup, $setupBytes)
+        $apkHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $sourceApk).Hash
+        $setupHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $sourceSetup).Hash
+        $apkName = 'Quest-Home-Switcher-v1.2.apk'
+        $setupName = 'Quest-Home-Switcher-Setup-v1.2.exe'
+        $apkUrl = "https://github.com/nikitat21/Quest-Home-Switcher/releases/download/v1.2/$apkName"
+        $setupUrl = "https://github.com/nikitat21/Quest-Home-Switcher/releases/download/v1.2/$setupName"
+        $script:UpdateMockSources = @{ $apkUrl=$sourceApk; $setupUrl=$sourceSetup }
+        $script:UpdateMockRelease = [pscustomobject]@{
+            draft = $false
+            prerelease = $false
+            tag_name = 'v1.2'
+            body = '<!-- quest-home-switcher-version-code: 15 -->'
+            url = 'https://api.github.com/repos/nikitat21/Quest-Home-Switcher/releases/120'
+            assets = @(
+                [pscustomobject]@{ name=$apkName; state='uploaded'; size=(Get-Item $sourceApk).Length; digest="sha256:$apkHash"; browser_download_url=$apkUrl },
+                [pscustomobject]@{ name=$setupName; state='uploaded'; size=(Get-Item $sourceSetup).Length; digest="sha256:$setupHash"; browser_download_url=$setupUrl }
+            )
+        }
+        $script:UpdateMockDownloadCalls = 0
+        Set-Item Function:Invoke-RestMethod -Value {
+            param([string]$Uri, [hashtable]$Headers)
+            return $script:UpdateMockRelease
+        }
+        Set-Item Function:Invoke-WebRequest -Value {
+            param([switch]$UseBasicParsing, [string]$Uri, [string]$OutFile)
+            $script:UpdateMockDownloadCalls++
+            $source = $script:UpdateMockSources[$Uri]
+            if (-not $source) { throw 'Unexpected mocked download URL.' }
+            Copy-Item -LiteralPath $source -Destination $OutFile
+        }
+
+        $script:ProjectUpdateRoot = Join-Path $updateTestRoot 'updates'
+        $script:ProjectReleaseChecked = $false
+        $script:ProjectReleaseResult = $null
+        $script:SwitcherApk = $originalUpdateState.SwitcherApk
+        $script:ExpectedSwitcherVersionCode = 14
+        $script:ExpectedSwitcherVersionName = '1.1'
+        $script:ExpectedSwitcherSha256 = '68FA680A7315172197951E7892D3CD306F8BE8A2E8FD8074D94D7B9B5D163DBA'
+        $script:SwitcherPayloadSource = 'Embedded'
+        $silentUpdateStatus = { param([string]$Text, [int]$Percent) }
+        $verifiedUpdate = Sync-ProjectRelease $silentUpdateStatus
+        if ($verifiedUpdate.Mode -ne 'Updated' -or $verifiedUpdate.Version -ne '1.2') { throw 'Self-test failed: verified GitHub release selection.' }
+        if ($script:SwitcherPayloadSource -ne 'Remote' -or $script:ExpectedSwitcherVersionName -ne '1.2' -or
+            $script:ExpectedSwitcherVersionCode -ne 15 -or $verifiedUpdate.ApkVersionCode -ne 15) {
+            throw 'Self-test failed: verified remote APK version propagation.'
+        }
+        if ($script:UpdateMockDownloadCalls -ne 2 -or -not (Test-Path -LiteralPath $verifiedUpdate.ApkPath) -or -not (Test-Path -LiteralPath $verifiedUpdate.SetupPath)) { throw 'Self-test failed: verified release asset staging.' }
+        if ((Get-FileHash -Algorithm SHA256 -LiteralPath $verifiedUpdate.ApkPath).Hash -ne $apkHash -or
+            (Get-FileHash -Algorithm SHA256 -LiteralPath $verifiedUpdate.SetupPath).Hash -ne $setupHash) {
+            throw 'Self-test failed: staged release hashes.'
+        }
+
+        # An equal release must not replace the embedded payload or redownload assets.
+        $script:UpdateMockRelease = [pscustomobject]@{
+            draft = $false
+            prerelease = $false
+            tag_name = 'v1.1'
+            url = 'https://api.github.com/repos/nikitat21/Quest-Home-Switcher/releases/110'
+            assets = @()
+        }
+        $script:UpdateMockDownloadCalls = 0
+        $script:ProjectReleaseChecked = $false
+        $script:ProjectReleaseResult = $null
+        $script:SwitcherApk = $originalUpdateState.SwitcherApk
+        $script:ExpectedSwitcherVersionCode = 14
+        $script:ExpectedSwitcherVersionName = '1.1'
+        $script:ExpectedSwitcherSha256 = '68FA680A7315172197951E7892D3CD306F8BE8A2E8FD8074D94D7B9B5D163DBA'
+        $script:SwitcherPayloadSource = 'Embedded'
+        $equalRelease = Sync-ProjectRelease $silentUpdateStatus
+        if ($equalRelease.Mode -ne 'Current' -or $script:UpdateMockDownloadCalls -ne 0 -or $script:SwitcherPayloadSource -ne 'Embedded') {
+            throw 'Self-test failed: equal release loop prevention.'
+        }
+
+        $missingDigestRelease = [pscustomobject]@{
+            tag_name = 'v1.2'
+            assets = @([pscustomobject]@{ name=$apkName; state='uploaded'; size=300000; digest=''; browser_download_url=$apkUrl })
+        }
+        $missingDigestRejected = $false
+        try { Get-ProjectReleaseAsset $missingDigestRelease $apkName | Out-Null } catch { $missingDigestRejected = $true }
+        if (-not $missingDigestRejected) { throw 'Self-test failed: missing GitHub digest was accepted.' }
+
+        $validMarkerCode = Get-ProjectReleaseVersionCode ([pscustomobject]@{ body='<!-- quest-home-switcher-version-code: 15 -->' })
+        if ($validMarkerCode -ne 15) { throw 'Self-test failed: release version-code marker propagation.' }
+        foreach ($invalidBody in @(
+            '',
+            '<!-- quest-home-switcher-version-code: 0 -->',
+            '<!-- quest-home-switcher-version-code: nope -->',
+            '<!-- quest-home-switcher-version-code: 15 --><!-- quest-home-switcher-version-code: 16 -->'
+        )) {
+            $invalidMarkerRejected = $false
+            try { Get-ProjectReleaseVersionCode ([pscustomobject]@{ body=$invalidBody }) | Out-Null } catch { $invalidMarkerRejected = $true }
+            if (-not $invalidMarkerRejected) { throw 'Self-test failed: missing, malformed, or duplicate release version-code marker was accepted.' }
+        }
+        if (-not (Test-SetupFileVersionMatch '1.2.0.0' '1.2') -or
+            (Test-SetupFileVersionMatch '1.1.0.0' '1.2') -or
+            (Test-SetupFileVersionMatch '1.2.0.1' '1.2')) {
+            throw 'Self-test failed: staged setup FileVersion validation.'
+        }
+
+        # A network/API failure must leave the signed embedded payload selected.
+        Set-Item Function:Invoke-RestMethod -Value { throw 'mock offline' }
+        $script:ProjectReleaseChecked = $false
+        $script:ProjectReleaseResult = $null
+        $script:SwitcherApk = $originalUpdateState.SwitcherApk
+        $script:ExpectedSwitcherVersionCode = 14
+        $script:ExpectedSwitcherVersionName = '1.1'
+        $script:ExpectedSwitcherSha256 = '68FA680A7315172197951E7892D3CD306F8BE8A2E8FD8074D94D7B9B5D163DBA'
+        $script:SwitcherPayloadSource = 'Embedded'
+        $offlineResult = Sync-ProjectRelease $silentUpdateStatus
+        if ($offlineResult.Mode -ne 'EmbeddedFallback' -or $script:SwitcherPayloadSource -ne 'Embedded' -or
+            $script:ExpectedSwitcherVersionName -ne '1.1' -or $script:ExpectedSwitcherVersionCode -ne 14) {
+            throw 'Self-test failed: offline embedded fallback.'
+        }
+    } finally {
+        if ($hadRestFunction) { Set-Item Function:Invoke-RestMethod -Value $originalRestFunction } else { Remove-Item Function:Invoke-RestMethod -ErrorAction SilentlyContinue }
+        if ($hadWebFunction) { Set-Item Function:Invoke-WebRequest -Value $originalWebFunction } else { Remove-Item Function:Invoke-WebRequest -ErrorAction SilentlyContinue }
+        $script:ProjectUpdateRoot = $originalUpdateState.ProjectUpdateRoot
+        $script:ProjectReleaseChecked = $originalUpdateState.ProjectReleaseChecked
+        $script:ProjectReleaseResult = $originalUpdateState.ProjectReleaseResult
+        $script:SwitcherApk = $originalUpdateState.SwitcherApk
+        $script:ExpectedSwitcherVersionCode = $originalUpdateState.ExpectedSwitcherVersionCode
+        $script:ExpectedSwitcherVersionName = $originalUpdateState.ExpectedSwitcherVersionName
+        $script:ExpectedSwitcherSha256 = $originalUpdateState.ExpectedSwitcherSha256
+        $script:SwitcherPayloadSource = $originalUpdateState.SwitcherPayloadSource
+        $safeUpdatePrefix = $updateTestBase.TrimEnd([System.IO.Path]::DirectorySeparatorChar) + [System.IO.Path]::DirectorySeparatorChar
+        if ($updateTestRoot.StartsWith($safeUpdatePrefix, [System.StringComparison]::OrdinalIgnoreCase) -and (Test-Path -LiteralPath $updateTestRoot)) {
+            Remove-Item -LiteralPath $updateTestRoot -Recurse -Force
+        }
+    }
 
     $apkTestBase = [System.IO.Path]::GetFullPath((Join-Path ([System.IO.Path]::GetTempPath()) 'QuestHomeSwitcherApkValidatorTest'))
     $apkTestRoot = [System.IO.Path]::GetFullPath((Join-Path $apkTestBase ([guid]::NewGuid().ToString('N'))))
@@ -1455,13 +1884,15 @@ if ($SelfTest) {
                 $mockOutput = 'package:/data/app/mock/switcher/base.apk'
             } elseif ($joined -match 'dumpsys package io\.github\.nikitat21\.questhomeswitcher') {
                 if ($script:MockSwitcherCase -eq 'SameCodeWrongName') {
-                    $mockOutput = "  versionCode=13 minSdk=29`n  versionName=unrelated-test-build"
+                    $mockOutput = "  versionCode=14 minSdk=29`n  versionName=unrelated-test-build"
+                } elseif ($script:MockSwitcherCase -eq 'SameNameWrongCode') {
+                    $mockOutput = "  versionCode=15 minSdk=29`n  versionName=1.1"
                 } elseif ($script:MockSwitcherCase -eq 'Newer') {
-                    $mockOutput = "  versionCode=14 minSdk=29`n  versionName=future-release"
+                    $mockOutput = "  versionCode=15 minSdk=29`n  versionName=1.2"
                 } elseif ($script:MockSwitcherCase -eq 'Legacy') {
-                    $mockOutput = "  versionCode=12 minSdk=29`n  versionName=legacy-test-build"
-                } else {
                     $mockOutput = "  versionCode=13 minSdk=29`n  versionName=1.0"
+                } else {
+                    $mockOutput = "  versionCode=14 minSdk=29`n  versionName=1.1"
                 }
             }
 
@@ -1473,6 +1904,8 @@ if ($SelfTest) {
         if ((Get-SwitcherState 'MOCK').State -ne 'Current') { throw 'Self-test failed: current Switcher state.' }
         $script:MockSwitcherCase = 'SameCodeWrongName'
         if ((Get-SwitcherState 'MOCK').State -ne 'Outdated') { throw 'Self-test failed: same-code wrong-name Switcher rejection.' }
+        $script:MockSwitcherCase = 'SameNameWrongCode'
+        if ((Get-SwitcherState 'MOCK').State -ne 'Outdated') { throw 'Self-test failed: same-name wrong-code Switcher rejection.' }
         $script:MockSwitcherCase = 'Newer'
         if ((Get-SwitcherState 'MOCK').State -ne 'Current') { throw 'Self-test failed: newer Switcher acceptance.' }
         $script:MockSwitcherCase = 'Legacy'
@@ -1530,7 +1963,9 @@ if ($SelfTest) {
         'Start-Switcher' = (Get-Item Function:Start-Switcher).ScriptBlock
         'Get-ShizukuState' = (Get-Item Function:Get-ShizukuState).ScriptBlock
     }
+    $migrationOriginalPayloadSource = $script:SwitcherPayloadSource
     try {
+        $script:SwitcherPayloadSource = 'Embedded'
         $script:MigrationPhase = 'Before'
         $script:MigrationCommands = New-Object System.Collections.Generic.List[string]
         $script:MigrationShizukuCalls = 0
@@ -1552,7 +1987,7 @@ if ($SelfTest) {
         Set-Item Function:Get-SwitcherState -Value {
             param([string]$Serial)
             if ($script:MigrationPhase -eq 'After') {
-                return [pscustomobject]@{ State='Current'; Version='1.0'; VersionCode=11; Detail='mock current' }
+                return [pscustomobject]@{ State='Current'; Version='1.1'; VersionCode=14; Detail='mock current' }
             }
             return [pscustomobject]@{ State='Outdated'; Version='1.2.7-debug'; VersionCode=10; Detail='mock debug build' }
         }
@@ -1589,7 +2024,20 @@ if ($SelfTest) {
         if (-not $migrationCanceled) { throw 'Self-test failed: rejected signature migration.' }
         if (@($script:MigrationCommands | Where-Object { $_ -match ' uninstall ' }).Count -ne 0) { throw 'Self-test failed: rejected migration removed an app.' }
         if ($script:MigrationShizukuCalls -ne 0 -or $script:MigrationSwitcherStarts -ne 1) { throw 'Self-test failed: rejected Fast Mode migration caused a side effect.' }
+
+        $script:MigrationPhase = 'Before'
+        $script:MigrationCommands.Clear()
+        $script:SwitcherPayloadSource = 'Remote'
+        $remoteMismatchRejected = $false
+        try {
+            Ensure-SwitcherInstalled 'MOCK' $migrationStatus { $true } | Out-Null
+        } catch {
+            $remoteMismatchRejected = $_.Exception.Message -match 'left installed|left untouched'
+        }
+        if (-not $remoteMismatchRejected) { throw 'Self-test failed: remote signing mismatch was not rejected safely.' }
+        if (@($script:MigrationCommands | Where-Object { $_ -match ' uninstall ' }).Count -ne 0) { throw 'Self-test failed: remote signing mismatch removed an app.' }
     } finally {
+        $script:SwitcherPayloadSource = $migrationOriginalPayloadSource
         foreach ($entry in $migrationOriginals.GetEnumerator()) {
             Set-Item "Function:$($entry.Key)" -Value $entry.Value
         }
@@ -1646,7 +2094,7 @@ if ($SelfTest) {
         }
     }
 
-    Write-Output 'SELF_TEST_OK_XAML_OK_PAYLOAD_OK_STATE_MACHINE_OK_HOME_IMPORT_OK_ADB_PUSH_OK_IMPORT_UI_OK_COOKED_PICKER_OK_PROFESSIONAL_NAMING_OK_SIGNATURE_MIGRATION_OK_FAST_MODES_NO_SHIZUKU_OK'
+    Write-Output 'SELF_TEST_OK_XAML_OK_PAYLOAD_OK_STATE_MACHINE_OK_HOME_IMPORT_OK_ADB_PUSH_OK_IMPORT_UI_OK_COOKED_PICKER_OK_PROFESSIONAL_NAMING_OK_SECURE_RELEASE_UPDATE_OK_SIGNATURE_MIGRATION_OK_FAST_MODES_NO_SHIZUKU_OK'
     exit 0
 }
 
@@ -1882,6 +2330,10 @@ $fastSwitcherButton.Add_Click({
     $wirelessButton.IsEnabled = $false
     $setupButton.IsEnabled = $false
     try {
+        $stageTitleText.Text = 'SECURE UPDATE CHECK'
+        $releaseUpdate = Sync-ProjectRelease $updateStatus
+        if (Start-VerifiedSetupUpdate $releaseUpdate $window) { return }
+        Refresh-StatusCards
         $stageTitleText.Text = 'OPTIONAL ADB-ONLY TOOL'
         $detailText.Text = 'Checking only the Quest connection and Quest Home Switcher package. Shizuku setup, pairing, and starter functions are not used by this action.'
         $installed = Invoke-SwitcherFastMode $updateStatus $confirmSwitcherMigration
@@ -1932,6 +2384,10 @@ $setupButton.Add_Click({
     $importButton.IsEnabled = $false
     $fastSwitcherButton.IsEnabled = $false
     try {
+        $stageTitleText.Text = 'SECURE UPDATE CHECK'
+        $releaseUpdate = Sync-ProjectRelease $updateStatus
+        if (Start-VerifiedSetupUpdate $releaseUpdate $window) { return }
+        Refresh-StatusCards
         Invoke-StateBasedSetup
     } catch {
         $stageTitleText.Text = 'ACTION NEEDED'

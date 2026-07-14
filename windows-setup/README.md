@@ -1,4 +1,4 @@
-# Quest Home Switcher Setup 1.0
+# Quest Home Switcher Setup 1.1
 
 Guided, state-aware Windows setup for Quest Home Switcher. It detects the connected headset's current state and performs only the steps that are still required.
 
@@ -6,7 +6,7 @@ Guided, state-aware Windows setup for Quest Home Switcher. It detects the connec
 
 For normal installation, download and run only:
 
-- `Quest-Home-Switcher-Setup-v1.0.exe`
+- `Quest-Home-Switcher-Setup-v1.1.exe`
 
 The Switcher APK is embedded in the EXE. At launch, both the controller and APK are extracted to a unique isolated directory below the Windows temporary folder. The launcher verifies the embedded APK SHA-256 before PowerShell starts and removes the temporary runtime directory after setup closes.
 
@@ -51,7 +51,7 @@ The setup carries the same Home catalog as the Android app (`OfficialHomeCatalog
 
 Existing files are never silently replaced: an identical remote APK SHA-256 is skipped, while different or unverifiable collisions receive `-2`, `-3`, and so on. Failed or ambiguous remote existence checks abort safely. Every uploaded file is size-verified and also SHA-256-verified when `sha256sum` is available on the Quest.
 
-`UPDATE / OPEN SWITCHER` is a second optional ADB-only tool. It checks the embedded payload, installs it only when the Quest has an older or missing Switcher, verifies the installed package, and opens it. If Android detects the old debug signing key, the same explicit migration confirmation appears. Both optional tools require only an authorized USB/ADB Quest connection. They never call Shizuku detection, pairing, upgrade, or native-starter functions.
+`UPDATE / OPEN SWITCHER` is a second optional ADB-only tool. It checks the official GitHub Release for a newer setup or APK, accepts only assets whose GitHub-provided SHA-256 digest verifies, and otherwise keeps using the embedded offline payload. It installs the APK only when the Quest has an older or missing Switcher, verifies the installed package, and opens it. A remotely downloaded payload never triggers automatic signing-key migration. Both optional tools require only an authorized USB/ADB Quest connection. They never call Shizuku detection, pairing, upgrade, or native-starter functions.
 
 Android deliberately requires the one-time pairing code and Shizuku permission confirmation to be completed by the user inside the headset.
 
@@ -73,4 +73,4 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\Build.ps1
 - The Home importer does not rely on APK file names to decide compatibility.
 - Shizuku comes only from official `RikkaApps/Shizuku` GitHub releases.
 - Platform Tools come only from Google.
-- The embedded Switcher payload is the permanently signed `1.0` build. Its version and SHA-256 are pinned in both the setup script and one-file launcher.
+- The embedded Switcher payload is the permanently signed `1.1` build. Its version and SHA-256 are pinned in both the setup script and one-file launcher.

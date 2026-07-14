@@ -16,6 +16,11 @@ Desktop.ini
 
 # Signing material and local secrets
 **/keystore.properties
+**/key.properties
+**/.env
+**/.env.*
+**/credentials.json
+**/*.secrets.json
 *.jks
 *.keystore
 *.p12

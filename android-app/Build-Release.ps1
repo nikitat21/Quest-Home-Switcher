@@ -18,7 +18,7 @@ $aapt = Join-Path $buildTools 'aapt.exe'
 $unsigned = Join-Path $root 'app\build\outputs\apk\release\app-release-unsigned.apk'
 $releaseDirectory = Join-Path $root 'release'
 $aligned = Join-Path $releaseDirectory 'Quest-Home-Switcher-aligned-unsigned.apk'
-$output = Join-Path $releaseDirectory 'Quest-Home-Switcher-v1.0.apk'
+$output = Join-Path $releaseDirectory 'Quest-Home-Switcher-v1.1.apk'
 $expectedCertificate = '85569394c59b355e850c540ac8b3247e27fbde16235ce20e95bcead337d93f75'
 
 foreach ($required in @($KeyStore, $zipalign, $apksigner, $aapt, (Join-Path $root 'gradlew.bat'))) {
@@ -81,7 +81,7 @@ try {
     if ($LASTEXITCODE -ne 0 -or $badging -notmatch "package: name='io\.github\.nikitat21\.questhomeswitcher'") {
         throw 'The signed APK has an unexpected package ID.'
     }
-    if ($badging -notmatch "versionCode='13'" -or $badging -notmatch "versionName='1\.0'") {
+    if ($badging -notmatch "versionCode='14'" -or $badging -notmatch "versionName='1\.1'") {
         throw 'The signed APK has an unexpected version.'
     }
 

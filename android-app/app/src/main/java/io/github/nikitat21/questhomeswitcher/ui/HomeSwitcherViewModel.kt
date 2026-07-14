@@ -5,18 +5,24 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.nikitat21.questhomeswitcher.data.HomeRepository
 import io.github.nikitat21.questhomeswitcher.domain.ActivateHomeUseCase
+import io.github.nikitat21.questhomeswitcher.domain.ActivationResult
 import io.github.nikitat21.questhomeswitcher.domain.HomeEnvironment
 import io.github.nikitat21.questhomeswitcher.domain.QuestHomeContract
 import io.github.nikitat21.questhomeswitcher.shell.PrivilegeCoordinator
 import io.github.nikitat21.questhomeswitcher.shell.PrivilegeState
-import io.github.nikitat21.questhomeswitcher.shell.ShizukuShellRunner
 import io.github.nikitat21.questhomeswitcher.shell.RootShellRunner
+import io.github.nikitat21.questhomeswitcher.shell.ShizukuShellRunner
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 data class HomeSwitcherUiState(
     val homes: List<HomeEnvironment> = emptyList(),
@@ -37,6 +43,8 @@ class HomeSwitcherViewModel(application: Application) : AndroidViewModel(applica
     private val rootRunner = RootShellRunner()
     private val activateHome = ActivateHomeUseCase(shellRunner, rootRunner)
     private val refreshRequests = Channel<Unit>(Channel.CONFLATED)
+    private val refreshMutex = Mutex()
+    private val foregroundOperations = ForegroundOperationGate()
     private val privilegeCoordinator = PrivilegeCoordinator(
         context = application,
         rootRunner = rootRunner,
@@ -49,9 +57,16 @@ class HomeSwitcherViewModel(application: Application) : AndroidViewModel(applica
 
     init {
         viewModelScope.launch {
-            for (ignored in refreshRequests) {
-                refreshOnce()
-            }
+            consumeRefreshRequests(
+                requests = refreshRequests,
+                refresh = ::refreshOnce,
+                onFailure = { error ->
+                    val foregroundOperationActive = foregroundOperations.isActive
+                    _uiState.update {
+                        it.completeRefreshFailure(error, foregroundOperationActive)
+                    }
+                },
+            )
         }
         viewModelScope.launch {
             privilegeCoordinator.state.collect { privilegeState ->
@@ -85,7 +100,7 @@ class HomeSwitcherViewModel(application: Application) : AndroidViewModel(applica
         refreshRequests.trySend(Unit)
     }
 
-    private suspend fun refreshOnce() {
+    private suspend fun refreshOnce() = refreshMutex.withLock {
         val privilegeState = privilegeCoordinator.state.value
         val ready = privilegeState == PrivilegeState.READY
         val rootReady = privilegeState == PrivilegeState.ROOT
@@ -174,43 +189,108 @@ class HomeSwitcherViewModel(application: Application) : AndroidViewModel(applica
 
     fun activateSelected() {
         val home = _uiState.value.selected ?: return
-        viewModelScope.launch {
-            _uiState.update {
+        launchForegroundOperation(
+            start = {
                 it.copy(
                     isBusy = true,
                     showRestartAction = false,
                     message = "Installing ${home.displayName}...",
                     log = "",
                 )
-            }
-            val result = activateHome(home)
+            },
+            failureMessage = "Install failed. Open the log.",
+            logHeading = "Apply Home",
+        ) {
+            val result = refreshMutex.withLock { activateHome(home) }
+            val refreshFailure = refreshAfterActivation(result, ::refreshOnce)
             _uiState.update {
-                it.copy(
-                    isBusy = false,
-                    activeHome = if (result.success) home else it.activeHome,
-                    showRestartAction = result.success && result.needsReboot,
-                    message = when {
-                        !result.success -> "Install failed. Open the log."
-                        else -> "Active: ${home.displayName}"
-                    },
-                    log = if (result.success) "" else result.log,
-                )
+                it.completeActivation(home, result, refreshFailure)
             }
         }
     }
 
     fun restartQuest() {
-        viewModelScope.launch {
-            _uiState.update { it.copy(message = "Requesting Quest restart...") }
+        launchForegroundOperation(
+            start = { it.copy(isBusy = true, message = "Requesting Quest restart...") },
+            failureMessage = "Restart failed. Use the Quest power menu.",
+            logHeading = "Restart",
+        ) {
             val result = when (privilegeCoordinator.state.value) {
-                PrivilegeState.ROOT -> rootRunner.run("reboot")
-                else -> shellRunner.run("reboot")
+                PrivilegeState.ROOT -> refreshMutex.withLock { rootRunner.run("reboot") }
+                else -> refreshMutex.withLock { shellRunner.run("reboot") }
             }
             _uiState.update {
                 it.copy(
                     message = if (result.success) "Restart requested." else "Restart failed. Use the Quest power menu.",
                     log = if (result.output.isBlank()) it.log else it.log + "\n== Restart ==\n" + result.output,
                 )
+            }
+        }
+    }
+
+    fun openMetaDebugSettings() {
+        val runner = when (privilegeCoordinator.state.value) {
+            PrivilegeState.ROOT -> rootRunner
+            PrivilegeState.READY -> shellRunner
+            else -> null
+        }
+        if (runner == null) {
+            _uiState.update {
+                it.copy(message = "Start Shizuku or use root before opening Meta Debug Settings.")
+            }
+            return
+        }
+        launchForegroundOperation(
+            start = { it.copy(isBusy = true, message = "Opening Meta Debug Settings...") },
+            failureMessage = "Meta Debug Settings could not be opened.",
+            logHeading = "Open Meta Debug Settings",
+        ) {
+            val result = refreshMutex.withLock {
+                runner.run(OPEN_META_DEBUG_SETTINGS_COMMAND)
+            }
+            _uiState.update {
+                it.copy(
+                    message = if (result.success) {
+                        "Meta Debug Settings launch requested."
+                    } else {
+                        "Meta Debug Settings could not be opened."
+                    },
+                    log = if (result.success || result.output.isBlank()) {
+                        it.log
+                    } else {
+                        it.appendLog("Open Meta Debug Settings", result.output)
+                    },
+                )
+            }
+        }
+    }
+
+    private fun launchForegroundOperation(
+        start: (HomeSwitcherUiState) -> HomeSwitcherUiState,
+        failureMessage: String,
+        logHeading: String,
+        operation: suspend () -> Unit,
+    ) {
+        if (!foregroundOperations.tryEnter()) return
+        _uiState.update(start)
+        viewModelScope.launch(start = CoroutineStart.UNDISPATCHED) {
+            try {
+                operation()
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                _uiState.update {
+                    it.copy(
+                        message = failureMessage,
+                        log = it.appendLog(
+                            logHeading,
+                            error.message ?: error::class.java.simpleName,
+                        ),
+                    )
+                }
+            } finally {
+                _uiState.update { it.copy(isBusy = false) }
+                foregroundOperations.leave()
             }
         }
     }
@@ -225,4 +305,111 @@ class HomeSwitcherViewModel(application: Application) : AndroidViewModel(applica
         PrivilegeState.PERMISSION_REQUIRED -> "Shizuku permission is required."
         PrivilegeState.READY -> "Shizuku is online."
     }
+
+    private companion object {
+        const val OPEN_META_DEBUG_SETTINGS_COMMAND =
+            "am broadcast --user 0 " +
+                "-a com.oculus.vrshell.intent.action.LAUNCH " +
+                "-n com.oculus.vrshell/.ShellControlBroadcastReceiver " +
+                "--es intent_data " +
+                "com.oculus.vrshell/com.oculus.panelapp.debug.ShellDebugActivity"
+    }
+}
+
+internal fun HomeSwitcherUiState.canOpenMetaDebugSettings(): Boolean =
+    !isBusy && (rootReady || shizukuReady)
+
+internal class ForegroundOperationGate {
+    private val mutex = Mutex()
+
+    val isActive: Boolean
+        get() = mutex.isLocked
+
+    fun tryEnter(): Boolean = mutex.tryLock()
+
+    fun leave() = mutex.unlock()
+}
+
+internal suspend fun consumeRefreshRequests(
+    requests: ReceiveChannel<Unit>,
+    refresh: suspend () -> Unit,
+    onFailure: (Exception) -> Unit,
+) {
+    for (ignored in requests) {
+        try {
+            refresh()
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (error: Exception) {
+            onFailure(error)
+        }
+    }
+}
+
+internal fun HomeSwitcherUiState.completeRefreshFailure(
+    error: Exception,
+    foregroundOperationActive: Boolean,
+): HomeSwitcherUiState = copy(
+    isBusy = foregroundOperationActive,
+    message = "Home scan failed. Try Refresh again.",
+    log = appendLog(
+        heading = "Refresh Home library",
+        details = error.message ?: error::class.java.simpleName,
+    ),
+)
+
+private fun HomeSwitcherUiState.appendLog(heading: String, details: String): String = buildString {
+    if (log.isNotBlank()) {
+        appendLine(log.trimEnd())
+    }
+    appendLine("== $heading ==")
+    append(details.trim())
+}
+
+internal suspend fun refreshAfterActivation(
+    result: ActivationResult,
+    refresh: suspend () -> Unit,
+): Exception? {
+    if (!result.success) return null
+    return try {
+        refresh()
+        null
+    } catch (cancelled: CancellationException) {
+        throw cancelled
+    } catch (error: Exception) {
+        error
+    }
+}
+
+internal fun HomeSwitcherUiState.completeActivation(
+    home: HomeEnvironment,
+    result: ActivationResult,
+    refreshFailure: Exception?,
+): HomeSwitcherUiState {
+    val resultLog = if (refreshFailure == null) {
+        result.log
+    } else {
+        buildString {
+            if (result.log.isNotBlank()) {
+                appendLine(result.log.trimEnd())
+                appendLine()
+            }
+            appendLine("== Refresh active Home ==")
+            append(refreshFailure.message ?: refreshFailure.javaClass.simpleName)
+        }
+    }
+    return copy(
+        isBusy = false,
+        showRestartAction = result.needsReboot,
+        message = when {
+            !result.success && result.needsReboot ->
+                "Install was rolled back. Restart the Quest once to reload Home."
+            !result.success -> "Install failed. Open the log."
+            result.needsReboot -> "Installed ${home.displayName}. Restart the Quest once to reload Home."
+            refreshFailure != null -> "Applied ${home.displayName}, but the active Home status could not be refreshed."
+            activeHome != null -> "Active: ${activeHome.displayName}"
+            else -> "Applied ${home.displayName}, but the active Home could not be confirmed."
+        },
+        log = if (result.success && !result.needsReboot && refreshFailure == null) "" else resultLog,
+    )
 }

@@ -187,20 +187,9 @@ class HomeRepository(context: Context) {
     ): HomeEnvironment? {
         if (homes.isEmpty()) return null
 
-        val command = """
-            installed=${'$'}(pm path --user 0 ${QuestHomeContract.TargetPackage} 2>/dev/null | sed -n 's/^package://p' | head -n 1)
-            [ -n "${'$'}installed" ] && [ -r "${'$'}installed" ] || exit 1
-            unzip -l "${'$'}installed" 2>/dev/null | grep -qE '[[:space:]]assets/scene\.zip${'$'}' || exit 1
-            unzip -p "${'$'}installed" assets/scene.zip 2>/dev/null | sha256sum | cut -d ' ' -f 1
-        """.trimIndent()
-
-        val result = shellRunner.run(command)
+        val result = shellRunner.run(activeHomeLookupCommand())
         if (!result.success) return null
-        val activeSceneHash = result.output.lineSequence()
-            .firstOrNull { it.matches(Regex("[0-9a-fA-F]{64}")) }
-            ?.trim()
-            ?: return null
-        return homes.firstOrNull { it.sceneHash.equals(activeSceneHash, ignoreCase = true) }
+        return findHomeForActiveSceneOutput(result.output, homes)
     }
 
     suspend fun findActiveInstalledHome(
@@ -320,4 +309,59 @@ class HomeRepository(context: Context) {
         val verified: Boolean,
         val sceneHash: String?,
     )
+}
+
+private const val ACTIVE_SCENE_HASH_PREFIX = "ACTIVE_SCENE_SHA256="
+private val EXACT_SCENE_HASH = Regex("^[0-9a-f]{64}${'$'}")
+
+internal fun activeHomeLookupCommand(): String {
+    return """
+        max_attempts=10
+        retry_delay=0.5
+        attempt=1
+        while [ "${'$'}attempt" -le "${'$'}max_attempts" ]; do
+          candidate_paths=${'$'}(
+            {
+              pm path --user 0 ${QuestHomeContract.TargetPackage}
+              pm path ${QuestHomeContract.TargetPackage}
+              cmd package path --user 0 ${QuestHomeContract.TargetPackage}
+              cmd package path ${QuestHomeContract.TargetPackage}
+            } 2>/dev/null | tr -d '\r' | sed -n 's/^package://p' | sort -u
+          )
+          found=0
+          for installed in ${'$'}candidate_paths; do
+            [ -r "${'$'}installed" ] || continue
+            unzip -l "${'$'}installed" 2>/dev/null | grep -qE '[[:space:]]assets/scene\.zip${'$'}' || continue
+            installed_hash=${'$'}(unzip -p "${'$'}installed" assets/scene.zip 2>/dev/null | sha256sum | cut -d ' ' -f 1 | tr '[:upper:]' '[:lower:]')
+            printf '%s\n' "${'$'}installed_hash" | grep -Eq '^[0-9a-f]{64}${'$'}' || continue
+            printf '${ACTIVE_SCENE_HASH_PREFIX}%s\n' "${'$'}installed_hash"
+            found=1
+          done
+          [ "${'$'}found" -eq 1 ] && exit 0
+          [ "${'$'}attempt" -lt "${'$'}max_attempts" ] && sleep "${'$'}retry_delay"
+          attempt=${'$'}((attempt + 1))
+        done
+        exit 1
+    """.trimIndent()
+}
+
+internal fun findHomeForActiveSceneOutput(
+    output: String,
+    homes: List<HomeEnvironment>,
+): HomeEnvironment? {
+    val activeSceneHashes = output.lineSequence()
+        .map { it.trim() }
+        .filter { it.startsWith(ACTIVE_SCENE_HASH_PREFIX) }
+        .map { it.removePrefix(ACTIVE_SCENE_HASH_PREFIX).trim().lowercase() }
+        .filter { it.matches(EXACT_SCENE_HASH) }
+        .toSet()
+    if (activeSceneHashes.isEmpty()) return null
+
+    return homes.firstOrNull { home ->
+        val normalizedHomeHash = home.sceneHash
+            ?.trim()
+            ?.lowercase()
+            ?.takeIf { it.matches(EXACT_SCENE_HASH) }
+        normalizedHomeHash != null && normalizedHomeHash in activeSceneHashes
+    }
 }

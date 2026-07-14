@@ -36,6 +36,7 @@ import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Security
+import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -65,7 +66,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -111,6 +111,7 @@ fun HomeSwitcherApp(
             state = state,
             formatSize = viewModel::formatSize,
             onRefresh = viewModel::refresh,
+            onOpenDebugSettings = viewModel::openMetaDebugSettings,
             onRequestShizuku = viewModel::requestShizukuPermission,
             onSelect = viewModel::select,
             onActivate = {
@@ -127,6 +128,7 @@ private fun HomeSwitcherScreen(
     state: HomeSwitcherUiState,
     formatSize: (Long) -> String,
     onRefresh: () -> Unit,
+    onOpenDebugSettings: () -> Unit,
     onRequestShizuku: () -> Unit,
     onSelect: (HomeEnvironment) -> Unit,
     onActivate: () -> Unit,
@@ -149,7 +151,9 @@ private fun HomeSwitcherScreen(
         AppHeader(
             homeCount = state.homes.size,
             isBusy = state.isBusy,
+            debugSettingsEnabled = state.canOpenMetaDebugSettings(),
             onRefresh = onRefresh,
+            onOpenDebugSettings = onOpenDebugSettings,
         )
 
         AccessBanner(
@@ -192,7 +196,9 @@ private fun HomeSwitcherScreen(
 private fun AppHeader(
     homeCount: Int,
     isBusy: Boolean,
+    debugSettingsEnabled: Boolean,
     onRefresh: () -> Unit,
+    onOpenDebugSettings: () -> Unit,
 ) {
     Row(
         modifier = Modifier
@@ -218,6 +224,21 @@ private fun AppHeader(
 
         CountBadge(homeCount)
         Spacer(Modifier.width(12.dp))
+        OutlinedButton(
+            onClick = onOpenDebugSettings,
+            enabled = debugSettingsEnabled,
+            modifier = Modifier
+                .heightIn(min = 52.dp)
+                .widthIn(min = 170.dp),
+            shape = RoundedCornerShape(14.dp),
+            border = BorderStroke(1.dp, Divider),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+        ) {
+            Icon(Icons.Rounded.Settings, contentDescription = null)
+            Spacer(Modifier.width(8.dp))
+            Text("Debug settings", fontWeight = FontWeight.SemiBold)
+        }
+        Spacer(Modifier.width(10.dp))
         OutlinedButton(
             onClick = onRefresh,
             enabled = !isBusy,
@@ -1031,8 +1052,6 @@ private fun PreviewBox(name: String, path: String?, modifier: Modifier) {
     val bitmap = remember(path) {
         path?.let { BitmapFactory.decodeFile(it)?.asImageBitmap() }
     }
-    val builtInPreview = remember(name) { builtInPreviewRes(name) }
-
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(14.dp))
@@ -1055,24 +1074,8 @@ private fun PreviewBox(name: String, path: String?, modifier: Modifier) {
                 modifier = Modifier.fillMaxSize(),
             )
 
-            builtInPreview != null -> Image(
-                painter = painterResource(id = builtInPreview),
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize(),
-            )
-
             else -> ThemedHomeArtwork(name)
         }
-    }
-}
-
-private fun builtInPreviewRes(name: String): Int? {
-    val key = name.lowercase().replace("_", " ").replace("-", " ")
-    return when {
-        "polar" in key || "village" in key -> R.drawable.preview_polar_village
-        "winter" in key || "lodge" in key || "loft" in key -> R.drawable.preview_winterloft
-        else -> null
     }
 }
 

@@ -28,7 +28,7 @@ The normal storage-access prompt is not the same as USB debugging. If setup cann
 
 ### 2. Start the setup
 
-1. Download `Quest-Home-Switcher-Setup-v1.0.exe` from the latest release.
+1. Download `Quest-Home-Switcher-Setup-v1.1.exe` from the latest release.
 2. Run the EXE and select **SET UP / REPAIR**.
 
 The Windows EXE is not Authenticode-signed yet, so Windows may show an **Unknown publisher** or reputation warning. Continue only when the file came from this repository's Releases page. The project does not ask you to disable antivirus protection.
@@ -121,7 +121,7 @@ Do not disconnect power or force-close the app while a Home is being replaced. I
 
 Rooted users do not need Shizuku:
 
-1. Install `Quest-Home-Switcher-v1.0.apk` manually through ADB or a trusted sideloading tool.
+1. Install `Quest-Home-Switcher-v1.1.apk` manually through ADB or a trusted sideloading tool.
 2. Open the app and approve the Magisk/`su` request.
 3. Let the app scan installed environment packages.
 4. Select an environment and apply it.
