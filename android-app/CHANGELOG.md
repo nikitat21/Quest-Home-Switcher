@@ -7,6 +7,7 @@
 - Added a dedicated online Library catalog channel so corrected Homes can be enabled without replacing the setup EXE.
 - Kept Home APKs outside the source tree and one-file setup; only selected assets are downloaded.
 - Added exact GitHub digest/size checks, verified local caching, and atomic `.part` uploads to the Quest.
+- Fixed the Library table so rows, text, search, selection, and status remain clearly readable with the dark theme.
 - Separated final application releases from `homes-v…` Library prereleases so setup 1.1 can still discover v1.5 correctly.
 - Verified an in-place device update from app 1.1 (code 14) to 1.5 (code 15) without touching Shizuku or Home files.
 

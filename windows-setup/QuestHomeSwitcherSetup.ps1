@@ -1223,7 +1223,7 @@ function Read-OfficialHomeLibraryCatalog(
             SizeText = if ($installable) { Format-FileSize $apkSize } else { 'Coming soon' }
             ApkSha256 = $apkSha256
             CookedSceneSha256 = $cookedSceneSha256
-            Status = $statusText
+            Status = if ($installable) { $statusText } else { 'Coming soon' }
             Asset = $null
             LibraryState = if ($installable) { 'NotChecked' } else { 'ComingSoon' }
             ManagedRemotePath = ''
@@ -1713,12 +1713,15 @@ function New-OfficialHomeLibraryWindow {
     </Style>
     <Style TargetType="DataGrid">
       <Setter Property="Background" Value="#0D1621"/><Setter Property="Foreground" Value="#EAF0F6"/>
+      <Setter Property="RowBackground" Value="#0F1926"/><Setter Property="AlternatingRowBackground" Value="#121E2D"/>
+      <Setter Property="AlternationCount" Value="2"/><Setter Property="RowHeaderWidth" Value="0"/>
       <Setter Property="BorderBrush" Value="#26394D"/><Setter Property="BorderThickness" Value="1"/>
       <Setter Property="GridLinesVisibility" Value="Horizontal"/><Setter Property="HorizontalGridLinesBrush" Value="#203044"/>
       <Setter Property="HeadersVisibility" Value="Column"/><Setter Property="RowHeight" Value="48"/>
       <Setter Property="ColumnHeaderHeight" Value="42"/><Setter Property="CanUserAddRows" Value="False"/>
       <Setter Property="CanUserDeleteRows" Value="False"/><Setter Property="AutoGenerateColumns" Value="False"/>
       <Setter Property="SelectionMode" Value="Single"/><Setter Property="SelectionUnit" Value="FullRow"/>
+      <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled"/>
     </Style>
     <Style TargetType="DataGridColumnHeader">
       <Setter Property="Background" Value="#152233"/><Setter Property="Foreground" Value="#9FB0C4"/>
@@ -1726,8 +1729,25 @@ function New-OfficialHomeLibraryWindow {
       <Setter Property="Padding" Value="12,0"/>
     </Style>
     <Style TargetType="DataGridCell">
-      <Setter Property="Background" Value="Transparent"/><Setter Property="BorderThickness" Value="0"/>
+      <Setter Property="Background" Value="Transparent"/><Setter Property="Foreground" Value="#EAF0F6"/>
+      <Setter Property="BorderThickness" Value="0"/>
       <Setter Property="Padding" Value="12,0"/><Setter Property="VerticalContentAlignment" Value="Center"/>
+      <Style.Triggers>
+        <Trigger Property="IsSelected" Value="True"><Setter Property="Background" Value="Transparent"/><Setter Property="Foreground" Value="#FFFFFF"/></Trigger>
+      </Style.Triggers>
+    </Style>
+    <Style TargetType="DataGridRow">
+      <Setter Property="Background" Value="#0F1926"/><Setter Property="Foreground" Value="#EAF0F6"/>
+      <Setter Property="BorderBrush" Value="#203044"/><Setter Property="BorderThickness" Value="0,0,0,1"/>
+      <Style.Triggers>
+        <Trigger Property="AlternationIndex" Value="1"><Setter Property="Background" Value="#121E2D"/></Trigger>
+        <Trigger Property="IsMouseOver" Value="True"><Setter Property="Background" Value="#17283A"/></Trigger>
+        <Trigger Property="IsSelected" Value="True"><Setter Property="Background" Value="#173B3A"/><Setter Property="Foreground" Value="#FFFFFF"/></Trigger>
+      </Style.Triggers>
+    </Style>
+    <Style x:Key="LibraryCellText" TargetType="TextBlock">
+      <Setter Property="Foreground" Value="#EAF0F6"/><Setter Property="VerticalAlignment" Value="Center"/>
+      <Setter Property="TextTrimming" Value="CharacterEllipsis"/><Setter Property="ToolTip" Value="{Binding Text, RelativeSource={RelativeSource Self}}"/>
     </Style>
   </Window.Resources>
   <Grid Margin="34,28,34,28">
@@ -1745,8 +1765,11 @@ function New-OfficialHomeLibraryWindow {
     <Grid Grid.Row="1" Margin="0,22,0,14">
       <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
       <Border Background="#101B28" BorderBrush="#2A3E52" BorderThickness="1" CornerRadius="8" Padding="14,8" Margin="0,0,12,0">
-        <TextBox x:Name="LibrarySearchBox" Background="Transparent" Foreground="#F4F7FB" BorderThickness="0"
-                 FontSize="15" VerticalContentAlignment="Center" ToolTip="Search by Home name"/>
+        <DockPanel>
+          <TextBlock x:Name="LibrarySearchLabel" DockPanel.Dock="Left" Text="SEARCH" Foreground="#7F94AA" FontSize="12" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,12,0"/>
+          <TextBox x:Name="LibrarySearchBox" Background="Transparent" Foreground="#F4F7FB" BorderThickness="0"
+                   FontSize="15" VerticalContentAlignment="Center" ToolTip="Type a Home name"/>
+        </DockPanel>
       </Border>
       <Button x:Name="LibrarySelectAllButton" Grid.Column="1" Content="SELECT ALL" Style="{StaticResource LibrarySecondaryButton}" Width="130" Margin="0,0,10,0"/>
       <Button x:Name="LibraryClearButton" Grid.Column="2" Content="CLEAR" Style="{StaticResource LibrarySecondaryButton}" Width="100"/>
@@ -1763,9 +1786,9 @@ function New-OfficialHomeLibraryWindow {
               </DataTemplate>
             </DataGridTemplateColumn.CellTemplate>
           </DataGridTemplateColumn>
-          <DataGridTextColumn Header="OFFICIAL META HOME" Binding="{Binding DisplayName}" IsReadOnly="True" Width="2.4*"/>
-          <DataGridTextColumn Header="DOWNLOAD" Binding="{Binding SizeText}" IsReadOnly="True" Width="1*"/>
-          <DataGridTextColumn Header="STATUS" Binding="{Binding Status}" IsReadOnly="True" Width="1.5*"/>
+          <DataGridTextColumn Header="HOME" Binding="{Binding DisplayName}" IsReadOnly="True" Width="2.4*" ElementStyle="{StaticResource LibraryCellText}"/>
+          <DataGridTextColumn Header="SIZE" Binding="{Binding SizeText}" IsReadOnly="True" Width="1*" ElementStyle="{StaticResource LibraryCellText}"/>
+          <DataGridTextColumn Header="STATUS" Binding="{Binding Status}" IsReadOnly="True" Width="1.5*" ElementStyle="{StaticResource LibraryCellText}"/>
         </DataGrid.Columns>
       </DataGrid>
     </Border>
@@ -2302,10 +2325,18 @@ if ($SelfTest) {
             -not $libraryWindow.FindName('LibrarySearchBox') -or -not $libraryWindow.FindName('LibraryContinueButton')) {
             throw 'Self-test failed: Official Meta Home Library XAML.'
         }
-        if ($libraryWindow.FindName('LibraryGrid').Columns.Count -ne 4 -or
-            $libraryWindow.FindName('LibraryGrid').Columns[3].Header -ne 'STATUS' -or
+        $selfTestLibraryGrid = $libraryWindow.FindName('LibraryGrid')
+        if ($selfTestLibraryGrid.Columns.Count -ne 4 -or
+            $selfTestLibraryGrid.Columns[1].Header -ne 'HOME' -or
+            $selfTestLibraryGrid.Columns[2].Header -ne 'SIZE' -or
+            $selfTestLibraryGrid.Columns[3].Header -ne 'STATUS' -or
             $libraryWindow.FindName('LibraryContinueButton').Content -ne 'INSTALL / UPDATE') {
             throw 'Self-test failed: Official Meta Home Library columns.'
+        }
+        if ($selfTestLibraryGrid.RowBackground.Color.ToString() -ne '#FF0F1926' -or
+            $selfTestLibraryGrid.AlternatingRowBackground.Color.ToString() -ne '#FF121E2D' -or
+            $libraryWindow.FindName('LibrarySearchLabel').Text -ne 'SEARCH') {
+            throw 'Self-test failed: Official Meta Home Library dark theme.'
         }
     } finally {
         if ($libraryWindow) { $libraryWindow.Close() }

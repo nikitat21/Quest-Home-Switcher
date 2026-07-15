@@ -17,7 +17,7 @@ Version 1.5 adds an optional online Official Meta Home Library while keeping the
 
 | File | SHA-256 |
 | --- | --- |
-| `Quest-Home-Switcher-Setup-v1.5.exe` | `944755DB12EC55E8BA3F7560E6D353DBD3BDD2710984860700166622EB218037` |
+| `Quest-Home-Switcher-Setup-v1.5.exe` | `3DC66F5A6C319D651188234BD93C965212355D2EA19FFF1C248089F54B308AE6` |
 | `Quest-Home-Switcher-v1.5.apk` | `2E241D0C3F559E994631EB408D29A1F60206F3FD19A4BCE7967FC127F9E2B118` |
 
 The final release body must contain exactly this marker:
