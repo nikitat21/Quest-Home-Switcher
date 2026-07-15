@@ -13,6 +13,13 @@ Version 1.5 adds an optional online Official Meta Home Library while keeping the
 - App/setup releases and Home Library releases use separate channels.
 - In-place upgrade from Switcher 1.1 (code 14) to 1.5 (code 15) verified on a connected Quest 3 without touching Shizuku.
 
+## Update directly from Setup
+
+- **Existing v1.1 users:** Open the Setup you already have and select **UPDATE / OPEN SWITCHER**. After the verified download, confirm **Open the updated setup now?** to continue in v1.5.
+- **New users:** Keep the Setup EXE and use **UPDATE / OPEN SWITCHER** for future verified Setup and Switcher updates. Download manually from GitHub only if the built-in update check cannot connect.
+
+This optional update path checks only GitHub and the connected Quest. It does not start, stop, pair, update, or reconfigure Shizuku.
+
 ## Files for the final `v1.5` application release
 
 | File | SHA-256 |
