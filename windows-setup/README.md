@@ -1,4 +1,4 @@
-# Quest Home Switcher Setup 1.1
+# Quest Home Switcher Setup 1.5
 
 Guided, state-aware Windows setup for Quest Home Switcher. It detects the connected headset's current state and performs only the steps that are still required.
 
@@ -6,11 +6,11 @@ Guided, state-aware Windows setup for Quest Home Switcher. It detects the connec
 
 For normal installation, download and run only:
 
-- `Quest-Home-Switcher-Setup-v1.1.exe`
+- `Quest-Home-Switcher-Setup-v1.5.exe`
 
 The Switcher APK is embedded in the EXE. At launch, both the controller and APK are extracted to a unique isolated directory below the Windows temporary folder. The launcher verifies the embedded APK SHA-256 before PowerShell starts and removes the temporary runtime directory after setup closes.
 
-`Quest-Home-Switcher.apk` remains beside the source only as a build input. It is not required beside the finished EXE.
+`Quest-Home-Switcher.apk` and `Official-Home-Library-v1.5.json` remain beside the source only as build inputs. They are not required beside the finished EXE. The small catalog is embedded as an offline fallback; the Home APKs themselves are separate downloads and are never embedded in the EXE.
 
 ## State-based behavior
 
@@ -51,6 +51,14 @@ The setup carries the same Home catalog as the Android app (`OfficialHomeCatalog
 
 Existing files are never silently replaced: an identical remote APK SHA-256 is skipped, while different or unverifiable collisions receive `-2`, `-3`, and so on. Failed or ambiguous remote existence checks abort safely. Every uploaded file is size-verified and also SHA-256-verified when `sha256sum` is available on the Quest.
 
+## Optional Official Meta Home Library
+
+`OFFICIAL HOME LIBRARY` is an independent ADB-only tool. The embedded catalog provides a verified offline fallback and currently exposes 20 known pre-v81 official Homes: 16 tested entries are installable, while Cascadia, Meta Horizon Terrace, Oceanarium, and Storybook fail closed as **Coming soon**.
+
+Opening the Library checks the project's public `homes-vX.Y.Z` prerelease channel. Library releases are intentionally GitHub prereleases so they never replace the latest final application release seen by older setup versions. The application updater accepts only final `vX.Y[.Z]` releases, while the Library accepts only non-draft `homes-vX.Y.Z` prereleases.
+
+The catalog supplies exact asset names, byte sizes, and SHA-256 values. Setup verifies those fields against GitHub's published asset digests before enabling a Home. Selected APKs are downloaded individually into a verified local cache and transferred to `/sdcard/Download/Quest Homes/Official Library`. The UI distinguishes **Not installed**, **Installed - up to date**, and **Update available**. New files and confirmed updates use a temporary `.part` file; updates also keep a temporary rollback copy until the final Quest hash verifies. Personal imports outside this managed folder are never replaced. A corrected or newly completed Home can therefore be published through a newer Library catalog without replacing the setup EXE.
+
 `UPDATE / OPEN SWITCHER` is a second optional ADB-only tool. It checks the official GitHub Release for a newer setup or APK, accepts only assets whose GitHub-provided SHA-256 digest verifies, and otherwise keeps using the embedded offline payload. It installs the APK only when the Quest has an older or missing Switcher, verifies the installed package, and opens it. A remotely downloaded payload never triggers automatic signing-key migration. Both optional tools require only an authorized USB/ADB Quest connection. They never call Shizuku detection, pairing, upgrade, or native-starter functions.
 
 Android deliberately requires the one-time pairing code and Shizuku permission confirmation to be completed by the user inside the headset.
@@ -73,4 +81,5 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\Build.ps1
 - The Home importer does not rely on APK file names to decide compatibility.
 - Shizuku comes only from official `RikkaApps/Shizuku` GitHub releases.
 - Platform Tools come only from Google.
-- The embedded Switcher payload is the permanently signed `1.1` build. Its version and SHA-256 are pinned in both the setup script and one-file launcher.
+- The embedded Switcher payload is the permanently signed `1.5` build. Its version and SHA-256 are pinned in both the setup script and one-file launcher.
+- The embedded Library fallback is also SHA-256 pinned in the setup script, one-file launcher, and build script.

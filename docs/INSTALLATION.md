@@ -11,9 +11,9 @@ You need:
 - a USB data cable;
 - Meta Developer Mode enabled for the headset;
 - the latest setup EXE from the [GitHub Releases page](https://github.com/nikitat21/Quest-Home-Switcher/releases); and
-- compatible Home APKs that you are legally allowed to use.
+- compatible Home APKs that you are legally allowed to use, unless you use an available entry from the optional Home Library.
 
-Quest Home Switcher does not include or download Home APKs.
+Home APKs are not embedded in the setup EXE. The optional Home Library downloads only the entries selected by the user from a separately verified GitHub release.
 
 ## Recommended setup on an unrooted Quest
 
@@ -28,7 +28,7 @@ The normal storage-access prompt is not the same as USB debugging. If setup cann
 
 ### 2. Start the setup
 
-1. Download `Quest-Home-Switcher-Setup-v1.1.exe` from the latest release.
+1. Download `Quest-Home-Switcher-Setup-v1.5.exe` from the latest final application release.
 2. Run the EXE and select **SET UP / REPAIR**.
 
 The Windows EXE is not Authenticode-signed yet, so Windows may show an **Unknown publisher** or reputation warning. Continue only when the file came from this repository's Releases page. The project does not ask you to disable antivirus protection.
@@ -72,6 +72,20 @@ When the setup screen says **SETUP COMPLETE**, select **SETUP COMPLETE - CLOSE**
 After a full headset reboot, Shizuku itself must be started again. The Switcher permission normally remains approved.
 
 ## Add Home APKs
+
+### Choose from the Official Meta Home Library
+
+1. Connect and authorize the Quest over USB.
+2. Open setup and select **OFFICIAL HOME LIBRARY**. This action does not start, stop, pair, or update Shizuku.
+3. Search or browse the catalog. It shows **Not installed**, **Installed - up to date**, **Update available**, or **Coming soon** for each Home.
+4. Select one or more new or updated Homes and continue. Updates are never installed without this confirmation.
+5. Setup verifies the dedicated Library prerelease, exact asset name, published SHA-256, and file size before downloading.
+6. Each APK is cached locally, uploaded through a temporary `.part` file, verified on the Quest, and committed inside `Download/Quest Homes/Official Library` only after the transfer is complete. An update keeps a temporary backup until the replacement verifies successfully.
+7. Open Quest Home Switcher and select **Refresh**.
+
+The initial v1.5 catalog contains 16 tested Homes. Cascadia, Meta Horizon Terrace, Oceanarium, and Storybook remain visible but unavailable until their individual device tests are complete. Later catalog versions can make a corrected Home available without replacing the setup EXE.
+
+Homes imported manually remain outside the managed Library folder and are never overwritten or deleted. A user may install the Library variant alongside an older personal copy and remove the personal copy later only if desired.
 
 ### Import from Windows
 
@@ -121,7 +135,7 @@ Do not disconnect power or force-close the app while a Home is being replaced. I
 
 Rooted users do not need Shizuku:
 
-1. Install `Quest-Home-Switcher-v1.1.apk` manually through ADB or a trusted sideloading tool.
+1. Install `Quest-Home-Switcher-v1.5.apk` manually through ADB or a trusted sideloading tool.
 2. Open the app and approve the Magisk/`su` request.
 3. Let the app scan installed environment packages.
 4. Select an environment and apply it.

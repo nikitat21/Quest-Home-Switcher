@@ -9,14 +9,16 @@ using System.Windows.Forms;
 [assembly: AssemblyDescription("State-aware setup for Quest Home Switcher and Shizuku")]
 [assembly: AssemblyCompany("Quest Community Tools")]
 [assembly: AssemblyProduct("Quest Home Switcher Setup")]
-[assembly: AssemblyVersion("1.1.0.0")]
-[assembly: AssemblyFileVersion("1.1.0.0")]
+[assembly: AssemblyVersion("1.5.0.0")]
+[assembly: AssemblyFileVersion("1.5.0.0")]
 
 internal static class Program
 {
     private const string ScriptResourceName = "QuestHomeSwitcherSetupAssistant.QuestHomeSwitcherSetup.ps1";
     private const string PayloadResourceName = "QuestHomeSwitcherSetupAssistant.Quest-Home-Switcher.apk";
-    private const string ExpectedPayloadSha256 = "BB077E351F66363D7EB8C057A488DB85A2D2004E63AF1F3497FFC83ECCD4E13F";
+    private const string LibraryCatalogResourceName = "QuestHomeSwitcherSetupAssistant.Official-Home-Library-v1.5.json";
+    private const string ExpectedPayloadSha256 = "2E241D0C3F559E994631EB408D29A1F60206F3FD19A4BCE7967FC127F9E2B118";
+    private const string ExpectedLibraryCatalogSha256 = "7780962813A8F3AEAB55C195631A2C4DAB4F380B72CF79C514BFDDD0252D0019";
 
     [STAThread]
     private static void Main(string[] args)
@@ -24,7 +26,7 @@ internal static class Program
         string runtime = Path.Combine(
             Path.GetTempPath(),
             "QuestHomeSwitcherSetup",
-            "1.1",
+            "1.5",
             Guid.NewGuid().ToString("N"));
 
         try
@@ -32,9 +34,12 @@ internal static class Program
             Directory.CreateDirectory(runtime);
             string script = Path.Combine(runtime, "QuestHomeSwitcherSetup.ps1");
             string payload = Path.Combine(runtime, "Quest-Home-Switcher.apk");
+            string libraryCatalog = Path.Combine(runtime, "Official-Home-Library-v1.5.json");
             ExtractResource(ScriptResourceName, script);
             ExtractResource(PayloadResourceName, payload);
+            ExtractResource(LibraryCatalogResourceName, libraryCatalog);
             VerifySha256(payload, ExpectedPayloadSha256);
+            VerifySha256(libraryCatalog, ExpectedLibraryCatalogSha256);
 
             string mode = Array.Exists(args, value => value == "--self-test")
                 ? " -SelfTest"

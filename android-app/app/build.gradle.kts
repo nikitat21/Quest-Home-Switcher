@@ -21,8 +21,8 @@ android {
         applicationId = "io.github.nikitat21.questhomeswitcher"
         minSdk = 29
         targetSdk = 32
-        versionCode = 14
-        versionName = "1.1"
+        versionCode = 15
+        versionName = "1.5"
     }
 
     signingConfigs {

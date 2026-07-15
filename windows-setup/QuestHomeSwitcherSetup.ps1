@@ -14,8 +14,8 @@ $script:RuntimeRoot = Join-Path $env:LOCALAPPDATA 'QuestHomeSwitcherSetup'
 $script:AdbPath = $null
 $script:UiInitialized = $false
 $script:SetupComplete = $false
-$script:SetupVersion = [System.Version]::Parse('1.1.0')
-$script:ProjectReleaseApi = 'https://api.github.com/repos/nikitat21/Quest-Home-Switcher/releases/latest'
+$script:SetupVersion = [System.Version]::Parse('1.5.0')
+$script:ProjectReleaseApi = 'https://api.github.com/repos/nikitat21/Quest-Home-Switcher/releases?per_page=100'
 $script:ProjectUpdateRoot = Join-Path $script:RuntimeRoot 'updates'
 $script:ProjectReleaseChecked = $false
 $script:ProjectReleaseResult = $null
@@ -26,13 +26,21 @@ $script:ShizukuActivity = 'moe.shizuku.privileged.api/moe.shizuku.manager.MainAc
 $script:SwitcherPackage = 'io.github.nikitat21.questhomeswitcher'
 $script:SwitcherActivity = 'io.github.nikitat21.questhomeswitcher/.MainActivity'
 $script:SwitcherApk = Join-Path $script:DistributionRoot 'Quest-Home-Switcher.apk'
-$script:ExpectedSwitcherVersionCode = 14
-$script:ExpectedSwitcherVersionName = '1.1'
-$script:ExpectedSwitcherSha256 = 'BB077E351F66363D7EB8C057A488DB85A2D2004E63AF1F3497FFC83ECCD4E13F'
+$script:ExpectedSwitcherVersionCode = 15
+$script:ExpectedSwitcherVersionName = '1.5'
+$script:ExpectedSwitcherSha256 = '2E241D0C3F559E994631EB408D29A1F60206F3FD19A4BCE7967FC127F9E2B118'
 $script:SwitcherPayloadSource = 'Embedded'
 $script:HomePackageIdentifier = 'com.meta.shell.env.footprint.haven2025'
 $script:HomeImportDirectory = '/sdcard/Download/Quest Homes'
+$script:OfficialHomeLibraryDirectory = "$($script:HomeImportDirectory)/Official Library"
 $script:HomeImportHistoryFile = Join-Path $script:RuntimeRoot 'home-import-directory.txt'
+$script:OfficialHomeLibraryPath = Join-Path $script:DistributionRoot 'Official-Home-Library-v1.5.json'
+$script:ExpectedOfficialHomeLibrarySha256 = '7780962813A8F3AEAB55C195631A2C4DAB4F380B72CF79C514BFDDD0252D0019'
+$script:OfficialHomeLibraryCache = Join-Path $script:RuntimeRoot 'official-home-library'
+$script:OfficialHomeLibraryRepository = 'nikitat21/Quest-Home-Switcher'
+$script:OfficialHomeLibraryReleaseTag = 'homes-v1.5.0'
+$script:OfficialHomeLibraryCatalogAssetName = 'Official-Home-Library-Catalog.json'
+$script:OfficialHomeLibraryReleaseApi = 'https://api.github.com/repos/nikitat21/Quest-Home-Switcher/releases?per_page=100'
 $script:OfficialHomeSceneCatalog = @{
     '33139012EDB50FF352DA4EC1BF357DABB03422F48BD418DADF0093911F076E91' = 'Blue Hill Gold Mine'
     '93E106293F6773724974E63D4033ED14FAB7B09ABFDCC6ED868030A598D2D22A' = 'Blue Hill Gold Mine'
@@ -416,6 +424,34 @@ function ConvertTo-ProjectVersion([string]$Value) {
     }
 }
 
+function Select-LatestProjectRelease([object[]]$Releases) {
+    $candidates = New-Object System.Collections.Generic.List[object]
+    foreach ($release in @($Releases)) {
+        if (-not $release -or $release.draft -ne $false -or $release.prerelease -ne $false -or
+            [string]$release.url -notmatch '^https://api\.github\.com/repos/nikitat21/Quest-Home-Switcher/releases/[0-9]+$') {
+            continue
+        }
+        $tagMatch = [regex]::Match([string]$release.tag_name, '^v((?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:\.(?:0|[1-9]\d*))?)$')
+        if (-not $tagMatch.Success) {
+            # Library channel releases deliberately use homes-vX.Y.Z and must
+            # never be interpreted as an application/setup update.
+            continue
+        }
+        $version = ConvertTo-ProjectVersion $tagMatch.Groups[1].Value
+        if ($version) {
+            $candidates.Add([pscustomobject]@{
+                Release = $release
+                Version = $version
+                VersionText = $tagMatch.Groups[1].Value
+            })
+        }
+    }
+    if ($candidates.Count -eq 0) {
+        throw 'GitHub did not return a final Quest Home Switcher application release.'
+    }
+    return @($candidates | Sort-Object Version -Descending)[0]
+}
+
 function Get-ProjectReleaseVersionCode([object]$Release) {
     if (-not $Release) { throw 'The GitHub release metadata is incomplete.' }
     $markerPattern = '<!-- quest-home-switcher-version-code: ([1-9][0-9]*) -->'
@@ -517,7 +553,8 @@ function Save-VerifiedProjectAsset([object]$Asset, [string]$DestinationRoot = $s
     if (-not $Asset -or [string]::IsNullOrWhiteSpace($DestinationRoot)) {
         throw 'A verified GitHub asset and destination are required.'
     }
-    if ([string]$Asset.Name -notmatch '^[A-Za-z0-9._-]+$' -or [string]$Asset.Tag -notmatch '^v[0-9]+\.[0-9]+(?:\.[0-9]+)?$') {
+    if ([string]$Asset.Name -notmatch '^[A-Za-z0-9._-]+$' -or
+        [string]$Asset.Tag -notmatch '^(?:v|homes-v)[0-9]+\.[0-9]+(?:\.[0-9]+)?$') {
         throw 'The GitHub asset path is not safe.'
     }
     $versionRoot = Join-Path ([System.IO.Path]::GetFullPath($DestinationRoot)) $Asset.Tag
@@ -567,19 +604,10 @@ function Sync-ProjectRelease([scriptblock]$Status) {
             'Accept' = 'application/vnd.github+json'
             'X-GitHub-Api-Version' = '2022-11-28'
         }
-        $release = Invoke-RestMethod -Uri $script:ProjectReleaseApi -Headers $headers
-        if (-not $release -or $release.draft -ne $false -or $release.prerelease -ne $false) {
-            throw 'GitHub did not return a final public release.'
-        }
-        if ([string]$release.url -notmatch '^https://api\.github\.com/repos/nikitat21/Quest-Home-Switcher/releases/[0-9]+$') {
-            throw 'GitHub returned release metadata for an unexpected repository.'
-        }
-        $tagMatch = [regex]::Match([string]$release.tag_name, '^v((?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:\.(?:0|[1-9]\d*))?)$')
-        if (-not $tagMatch.Success) {
-            throw 'The latest GitHub release tag is not a supported version.'
-        }
-        $versionText = $tagMatch.Groups[1].Value
-        $releaseVersion = ConvertTo-ProjectVersion $versionText
+        $releaseSelection = Select-LatestProjectRelease @(Invoke-RestMethod -Uri $script:ProjectReleaseApi -Headers $headers)
+        $release = $releaseSelection.Release
+        $versionText = $releaseSelection.VersionText
+        $releaseVersion = $releaseSelection.Version
         $payloadVersion = ConvertTo-ProjectVersion $script:ExpectedSwitcherVersionName
         if (-not $releaseVersion -or -not $payloadVersion) {
             throw 'The release version could not be verified.'
@@ -1017,6 +1045,364 @@ function Test-HomeApk([string]$Path) {
     }
 }
 
+function Format-FileSize([int64]$Bytes) {
+    if ($Bytes -ge 1GB) { return ('{0:N1} GB' -f ($Bytes / 1GB)) }
+    if ($Bytes -ge 1MB) { return ('{0:N1} MB' -f ($Bytes / 1MB)) }
+    if ($Bytes -ge 1KB) { return ('{0:N1} KB' -f ($Bytes / 1KB)) }
+    return "$Bytes B"
+}
+
+function Assert-ExactJsonProperties([object]$Object, [string[]]$Expected, [string]$Label) {
+    if ($null -eq $Object) { throw "$Label is missing." }
+    $actual = @($Object.PSObject.Properties.Name | Sort-Object)
+    $difference = @(Compare-Object -ReferenceObject @($Expected | Sort-Object) -DifferenceObject $actual -CaseSensitive)
+    if ($difference.Count -ne 0) { throw "$Label does not match the supported strict schema." }
+}
+
+function Read-OfficialHomeLibraryCatalog(
+    [string]$Path = $script:OfficialHomeLibraryPath,
+    [string]$ExpectedSha256 = $script:ExpectedOfficialHomeLibrarySha256,
+    [string]$ExpectedReleaseTag = $script:OfficialHomeLibraryReleaseTag,
+    [switch]$RequirePinnedHomeSet
+) {
+    if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
+        throw 'The verified Official Meta Home Library catalog is missing. Download a fresh setup EXE.'
+    }
+    $file = Get-Item -LiteralPath $Path
+    if ($file.Length -lt 256 -or $file.Length -gt 1MB) {
+        throw 'The Official Meta Home Library catalog has an unexpected size.'
+    }
+    if ($ExpectedSha256 -notmatch '^[0-9A-Fa-f]{64}$') {
+        throw 'The pinned Official Meta Home Library catalog hash is invalid.'
+    }
+    $actualHash = (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash
+    if (-not [string]::Equals($actualHash, $ExpectedSha256, [System.StringComparison]::OrdinalIgnoreCase)) {
+        throw 'The Official Meta Home Library catalog failed its SHA-256 integrity check.'
+    }
+
+    try {
+        $document = Get-Content -LiteralPath $Path -Raw -Encoding UTF8 | ConvertFrom-Json
+    } catch {
+        throw "The Official Meta Home Library catalog is not valid JSON: $($_.Exception.Message)"
+    }
+    $topProperties = @('schemaVersion', 'catalogVersion', 'repository', 'releaseTag', 'homes')
+    $homeProperties = @(
+        'id', 'displayName', 'provenance', 'sourceSceneSha256', 'sourceSignerSha256',
+        'status', 'statusText', 'installable', 'runtimeTested', 'targetFileName',
+        'assetName', 'apkSize', 'apkSha256', 'cookedSceneSha256'
+    )
+    Assert-ExactJsonProperties $document $topProperties 'The Official Meta Home Library catalog'
+    $releaseTagMatch = [regex]::Match([string]$document.releaseTag, '^homes-v((?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*))$')
+    $catalogVersion = ConvertTo-ProjectVersion ([string]$document.catalogVersion)
+    if ($document.schemaVersion -isnot [int] -or [int]$document.schemaVersion -ne 1 -or
+        -not $releaseTagMatch.Success -or -not $catalogVersion -or
+        [string]$document.catalogVersion -cne $releaseTagMatch.Groups[1].Value -or
+        [string]$document.repository -cne $script:OfficialHomeLibraryRepository -or
+        ([string]::IsNullOrWhiteSpace($ExpectedReleaseTag) -eq $false -and [string]$document.releaseTag -cne $ExpectedReleaseTag)) {
+        throw 'The Official Meta Home Library catalog identity is not supported by this setup.'
+    }
+
+    $rawHomes = @($document.homes)
+    if ($rawHomes.Count -lt 1 -or $rawHomes.Count -gt 128) {
+        throw 'The Official Meta Home Library catalog contains an unexpected number of entries.'
+    }
+    $seenIds = @{}
+    $seenNames = @{}
+    $seenAssets = @{}
+    $seenApkHashes = @{}
+    $seenSourceSceneHashes = @{}
+    $seenCookedSceneHashes = @{}
+    $totalBytes = 0L
+    $availableCount = 0
+    $homes = New-Object System.Collections.Generic.List[object]
+    foreach ($raw in $rawHomes) {
+        Assert-ExactJsonProperties $raw $homeProperties 'An Official Meta Home Library entry'
+        $id = [string]$raw.id
+        $displayName = [string]$raw.displayName
+        $provenance = [string]$raw.provenance
+        $sourceSceneSha256 = ([string]$raw.sourceSceneSha256).ToUpperInvariant()
+        $sourceSignerSha256 = ([string]$raw.sourceSignerSha256).ToUpperInvariant()
+        $status = [string]$raw.status
+        $statusText = [string]$raw.statusText
+        if ($raw.installable -isnot [bool] -or $raw.runtimeTested -isnot [bool]) {
+            throw "The Official Meta Home Library contains invalid safety flags for $id."
+        }
+        $installable = [bool]$raw.installable
+        $runtimeTested = [bool]$raw.runtimeTested
+        $targetFileName = [string]$raw.targetFileName
+        $assetName = [string]$raw.assetName
+        $apkSha256 = ([string]$raw.apkSha256).ToUpperInvariant()
+        $cookedSceneSha256 = ([string]$raw.cookedSceneSha256).ToUpperInvariant()
+        $apkSize = 0L
+        if ($id -notmatch '^[a-z0-9]+(?:-[a-z0-9]+)*$' -or $id.Length -gt 64) {
+            throw 'The Official Meta Home Library contains an invalid Home id.'
+        }
+        if ([string]::IsNullOrWhiteSpace($displayName) -or $displayName.Length -gt 80 -or
+            $displayName -match '[\\/:*?""<>|\x00-\x1F]' -or $displayName -match '[ .]$') {
+            throw "The Official Meta Home Library contains an invalid display name for $id."
+        }
+        if ($sourceSceneSha256 -notmatch '^[0-9A-F]{64}$' -or
+            [string]::IsNullOrWhiteSpace($statusText) -or $statusText.Length -gt 160 -or
+            $targetFileName -cne "$displayName.apk") {
+            throw "The Official Meta Home Library contains invalid provenance metadata for $displayName."
+        }
+        if ($provenance -ceq 'meta-scene-catalog') {
+            if ($null -ne $raw.sourceSignerSha256 -or $sourceSignerSha256) {
+                throw "$displayName has an unexpected signer override."
+            }
+            if ($RequirePinnedHomeSet) {
+                $knownName = [string]$script:OfficialHomeSceneCatalog[$sourceSceneSha256]
+                if ([string]::IsNullOrWhiteSpace($knownName) -or $knownName -cne $displayName) {
+                    throw "$displayName is not an exact known Official Meta Home source scene."
+                }
+            }
+        } elseif ($provenance -ceq 'oculus-apps-certificate') {
+            if ($sourceSignerSha256 -notmatch '^[0-9A-F]{64}$') {
+                throw "$displayName has an invalid Oculus Apps signer certificate."
+            }
+            if ($RequirePinnedHomeSet -and ($id -cne 'rockquarry' -or $displayName -cne 'Rockquarry' -or
+                $sourceSceneSha256 -cne '82F4C04451A30E0EAB6154EFA686BCD0B6BBFB5E5DD8610353E128F285B5AB95' -or
+                $sourceSignerSha256 -cne '6631568AD0F84212370C35FB8C2E2401D0CE7DF1A0B48D0AA9FD0C83BD4D933B')) {
+                throw 'The separately pinned Oculus-signed Rockquarry provenance is invalid.'
+            }
+        } else {
+            throw "$displayName has an unsupported Official Home provenance."
+        }
+
+        if ($status -ceq 'available' -and $installable -and $runtimeTested) {
+            if ($assetName -notmatch '^Meta-Home-[A-Za-z0-9-]+-v(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:\.(?:0|[1-9]\d*))?\.apk$' -or $assetName.Length -gt 120 -or
+                $apkSha256 -notmatch '^[0-9A-F]{64}$' -or $cookedSceneSha256 -notmatch '^[0-9A-F]{64}$' -or
+                $raw.apkSize -isnot [ValueType] -or $raw.apkSize -is [bool] -or
+                -not [int64]::TryParse([string]$raw.apkSize, [ref]$apkSize) -or $apkSize -lt 1MB -or $apkSize -gt 1GB) {
+                throw "The available Official Home payload metadata is incomplete for $displayName."
+            }
+            foreach ($duplicate in @(
+                [pscustomobject]@{ Map=$seenAssets; Key=$assetName.ToLowerInvariant(); Label='asset name' },
+                [pscustomobject]@{ Map=$seenApkHashes; Key=$apkSha256; Label='APK hash' },
+                [pscustomobject]@{ Map=$seenCookedSceneHashes; Key=$cookedSceneSha256; Label='cooked scene hash' }
+            )) {
+                if ($duplicate.Map.ContainsKey($duplicate.Key)) {
+                    throw "The Official Meta Home Library contains a duplicate $($duplicate.Label)."
+                }
+                $duplicate.Map[$duplicate.Key] = $true
+            }
+            $totalBytes += $apkSize
+            $availableCount++
+        } elseif ($status -ceq 'comingSoon' -and -not $installable -and -not $runtimeTested) {
+            if ($assetName -or $apkSha256 -or $cookedSceneSha256 -or $null -ne $raw.apkSize) {
+                throw "$displayName is marked coming soon but contains an installable payload."
+            }
+        } else {
+            throw "$displayName has an inconsistent Library availability state."
+        }
+
+        $idKey = $id.ToLowerInvariant()
+        $nameKey = $displayName.ToLowerInvariant()
+        if ($seenIds.ContainsKey($idKey) -or $seenNames.ContainsKey($nameKey) -or $seenSourceSceneHashes.ContainsKey($sourceSceneSha256)) {
+            throw 'The Official Meta Home Library contains duplicate Home identity metadata.'
+        }
+        $seenIds[$idKey] = $true
+        $seenNames[$nameKey] = $true
+        $seenSourceSceneHashes[$sourceSceneSha256] = $true
+        if ($totalBytes -gt 16GB) {
+            throw 'The Official Meta Home Library is larger than the supported safety limit.'
+        }
+        $homes.Add([pscustomobject]@{
+            Selected = $false
+            CanSelect = $false
+            Id = $id
+            DisplayName = $displayName
+            Provenance = $provenance
+            SourceSceneSha256 = $sourceSceneSha256
+            SourceSignerSha256 = $sourceSignerSha256
+            Installable = $installable
+            RuntimeTested = $runtimeTested
+            TargetFileName = $targetFileName
+            AssetName = $assetName
+            ApkSize = $apkSize
+            SizeText = if ($installable) { Format-FileSize $apkSize } else { 'Coming soon' }
+            ApkSha256 = $apkSha256
+            CookedSceneSha256 = $cookedSceneSha256
+            Status = $statusText
+            Asset = $null
+            LibraryState = if ($installable) { 'NotChecked' } else { 'ComingSoon' }
+            ManagedRemotePath = ''
+        })
+    }
+    return [pscustomobject]@{
+        SchemaVersion = 1
+        CatalogVersion = [string]$document.catalogVersion
+        Repository = $script:OfficialHomeLibraryRepository
+        ReleaseTag = [string]$document.releaseTag
+        CatalogPath = [System.IO.Path]::GetFullPath($Path)
+        CatalogSha256 = $actualHash.ToUpperInvariant()
+        Source = 'Embedded'
+        Diagnostic = ''
+        ReleaseMetadata = $null
+        TotalBytes = $totalBytes
+        AvailableCount = $availableCount
+        ComingSoonCount = $rawHomes.Count - $availableCount
+        Homes = @($homes | Sort-Object DisplayName)
+    }
+}
+
+function Select-LatestOfficialHomeLibraryRelease([object[]]$Releases) {
+    $candidates = New-Object System.Collections.Generic.List[object]
+    foreach ($release in @($Releases)) {
+        if (-not $release -or $release.draft -ne $false -or $release.prerelease -ne $true -or
+            [string]$release.url -notmatch '^https://api\.github\.com/repos/nikitat21/Quest-Home-Switcher/releases/[0-9]+$') {
+            continue
+        }
+        $tagMatch = [regex]::Match([string]$release.tag_name, '^homes-v((?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*))$')
+        if (-not $tagMatch.Success) { continue }
+        $version = ConvertTo-ProjectVersion $tagMatch.Groups[1].Value
+        if ($version) {
+            $candidates.Add([pscustomobject]@{ Release=$release; Version=$version; VersionText=$tagMatch.Groups[1].Value })
+        }
+    }
+    if ($candidates.Count -eq 0) { throw 'No public Official Home Library channel prerelease is available.' }
+    return @($candidates | Sort-Object Version -Descending)[0]
+}
+
+function Sync-OfficialHomeLibraryCatalog([scriptblock]$Status) {
+    $embedded = Read-OfficialHomeLibraryCatalog -RequirePinnedHomeSet
+    $previousSecurityProtocol = [Net.ServicePointManager]::SecurityProtocol
+    try {
+        if ($Status) { & $Status 'Checking for a newer verified Home Library catalog...' 5 }
+        [Net.ServicePointManager]::SecurityProtocol = $previousSecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+        $headers = @{
+            'User-Agent' = 'Quest-Home-Switcher-Setup'
+            'Accept' = 'application/vnd.github+json'
+            'X-GitHub-Api-Version' = '2022-11-28'
+        }
+        $selection = Select-LatestOfficialHomeLibraryRelease @(Invoke-RestMethod -Uri $script:OfficialHomeLibraryReleaseApi -Headers $headers)
+        $embeddedVersion = ConvertTo-ProjectVersion $embedded.CatalogVersion
+        if (-not $embeddedVersion -or $selection.Version.CompareTo($embeddedVersion) -lt 0) {
+            throw 'The online Home Library catalog is older than the verified embedded fallback.'
+        }
+        $asset = Get-ProjectReleaseAsset $selection.Release $script:OfficialHomeLibraryCatalogAssetName 256 1MB
+        $catalogRoot = Join-Path $script:OfficialHomeLibraryCache 'catalogs'
+        $catalogPath = Save-VerifiedProjectAsset $asset $catalogRoot
+        $remote = Read-OfficialHomeLibraryCatalog $catalogPath $asset.Sha256 ([string]$selection.Release.tag_name)
+        if ((ConvertTo-ProjectVersion $remote.CatalogVersion).CompareTo($selection.Version) -ne 0) {
+            throw 'The online Home Library catalog version does not match its release channel tag.'
+        }
+        $remote.Source = 'Remote'
+        $remote.ReleaseMetadata = $selection.Release
+        return $remote
+    } catch {
+        $embedded.Diagnostic = $_.Exception.Message
+        return $embedded
+    } finally {
+        [Net.ServicePointManager]::SecurityProtocol = $previousSecurityProtocol
+    }
+}
+
+function Get-OfficialHomeLibraryRelease([object]$Catalog, [scriptblock]$Status) {
+    if (-not $Catalog) { throw 'The Official Meta Home Library catalog is required.' }
+    if ($Status) { & $Status 'Checking the verified Official Meta Home Library release...' 8 }
+    $previousSecurityProtocol = [Net.ServicePointManager]::SecurityProtocol
+    try {
+        [Net.ServicePointManager]::SecurityProtocol = $previousSecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+        $headers = @{
+            'User-Agent' = 'Quest-Home-Switcher-Setup'
+            'Accept' = 'application/vnd.github+json'
+            'X-GitHub-Api-Version' = '2022-11-28'
+        }
+        $tag = [uri]::EscapeDataString([string]$Catalog.ReleaseTag)
+        $uri = "https://api.github.com/repos/$($Catalog.Repository)/releases/tags/$tag"
+        $release = if ($Catalog.ReleaseMetadata) { $Catalog.ReleaseMetadata } else { Invoke-RestMethod -Uri $uri -Headers $headers }
+        if (-not $release -or $release.draft -ne $false -or $release.prerelease -ne $true -or
+            [string]$release.tag_name -cne [string]$Catalog.ReleaseTag -or
+            [string]$release.tag_name -notmatch '^homes-v(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)$' -or
+            [string]$release.url -notmatch '^https://api\.github\.com/repos/nikitat21/Quest-Home-Switcher/releases/[0-9]+$') {
+            throw 'The Official Meta Home Library prerelease does not match the pinned repository and tag.'
+        }
+
+        $catalogAsset = Get-ProjectReleaseAsset $release $script:OfficialHomeLibraryCatalogAssetName 256 1MB
+        if (-not [string]::Equals($catalogAsset.Sha256, [string]$Catalog.CatalogSha256, [System.StringComparison]::OrdinalIgnoreCase)) {
+            throw 'The Official Meta Home Library release catalog does not match the catalog currently shown.'
+        }
+        $verifiedAssets = @{}
+        foreach ($libraryHome in @($Catalog.Homes | Where-Object { $_.Installable })) {
+            $asset = Get-ProjectReleaseAsset $release $libraryHome.AssetName 1MB 1GB
+            if ($asset.Size -ne [int64]$libraryHome.ApkSize -or
+                -not [string]::Equals($asset.Sha256, $libraryHome.ApkSha256, [System.StringComparison]::OrdinalIgnoreCase)) {
+                throw "The published asset for $($libraryHome.DisplayName) does not match its pinned catalog metadata."
+            }
+            $verifiedAssets[$libraryHome.Id] = $asset
+        }
+        foreach ($libraryHome in @($Catalog.Homes | Where-Object { $_.Installable })) {
+            $libraryHome.Asset = $verifiedAssets[$libraryHome.Id]
+            $libraryHome.CanSelect = $true
+            $libraryHome.Status = 'Verified - ready to download'
+        }
+        return $release
+    } finally {
+        [Net.ServicePointManager]::SecurityProtocol = $previousSecurityProtocol
+    }
+}
+
+function Save-VerifiedOfficialHome([object]$LibraryHome) {
+    if (-not $LibraryHome -or -not $LibraryHome.Installable -or -not $LibraryHome.RuntimeTested -or -not $LibraryHome.Asset) {
+        throw 'The selected Official Meta Home does not have verified release metadata.'
+    }
+    $path = Save-VerifiedProjectAsset $LibraryHome.Asset $script:OfficialHomeLibraryCache
+    $file = Get-Item -LiteralPath $path
+    if ($file.Length -ne [int64]$LibraryHome.ApkSize) {
+        throw "$($LibraryHome.DisplayName) failed its final local size verification."
+    }
+    $hash = (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash
+    if (-not [string]::Equals($hash, $LibraryHome.ApkSha256, [System.StringComparison]::OrdinalIgnoreCase)) {
+        throw "$($LibraryHome.DisplayName) failed its final local APK SHA-256 verification."
+    }
+    $validation = Test-HomeApk $path
+    if (-not $validation.Valid -or
+        -not [string]::Equals([string]$validation.SceneHash, [string]$LibraryHome.CookedSceneSha256, [System.StringComparison]::OrdinalIgnoreCase)) {
+        throw "$($LibraryHome.DisplayName) is not the exact tested cooked scene pinned by the Official Home catalog."
+    }
+    return $path
+}
+
+function Get-LocalFreeBytes([string]$Path) {
+    $current = [System.IO.Path]::GetFullPath($Path)
+    while (-not (Test-Path -LiteralPath $current) -and $current) {
+        $current = [System.IO.Path]::GetDirectoryName($current)
+    }
+    if (-not $current) { return $null }
+    $root = [System.IO.Path]::GetPathRoot($current)
+    try { return [int64]([System.IO.DriveInfo]::new($root).AvailableFreeSpace) } catch { return $null }
+}
+
+function Get-QuestFreeBytes([string]$Serial) {
+    $directory = ConvertTo-RemoteShellLiteral $script:HomeImportDirectory
+    $result = Invoke-Adb @('-s', $Serial, 'shell', "df -Pk $directory 2>/dev/null || df -k $directory 2>/dev/null") -AllowFailure
+    if ($result.ExitCode -ne 0) { return $null }
+    $lines = @($result.Output -split "`r?`n" | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+    if ($lines.Count -lt 2) { return $null }
+    $fields = @($lines[-1].Trim() -split '\s+')
+    if ($fields.Count -lt 4) { return $null }
+    $availableKb = 0L
+    if (-not [int64]::TryParse($fields[3], [ref]$availableKb)) { return $null }
+    return $availableKb * 1024L
+}
+
+function Assert-OfficialHomeLibrarySpace([string]$Serial, [int64]$RequiredBytes) {
+    $pcFree = Get-LocalFreeBytes $script:OfficialHomeLibraryCache
+    $pcRequired = $RequiredBytes + 128MB
+    if ($null -eq $pcFree -or $pcFree -lt $pcRequired) {
+        throw "Not enough verified free PC space for this Home. Required: $(Format-FileSize $pcRequired)."
+    }
+    $questFree = Get-QuestFreeBytes $Serial
+    $questRequired = $RequiredBytes + 64MB
+    if ($null -eq $questFree) {
+        throw 'The Quest free-space check did not return a trustworthy result. No Home was downloaded or imported.'
+    }
+    if ($questFree -lt $questRequired) {
+        throw "Not enough free Quest storage for this Home. Required: $(Format-FileSize $questRequired)."
+    }
+}
+
 function ConvertTo-SafeApkName([string]$Path) {
     $baseName = [System.IO.Path]::GetFileNameWithoutExtension($Path)
     $safeBase = [regex]::Replace($baseName, '[^\p{L}\p{Nd} ._()-]+', ' ')
@@ -1278,18 +1664,21 @@ function Show-HomeImportResults([object[]]$Results, [object[]]$Rejected, [object
     $doneButton = $resultWindow.FindName('ResultDoneButton')
 
     $uploaded = @($Results | Where-Object { $_.Status -eq 'Uploaded' }).Count
+    $updated = @($Results | Where-Object { $_.Status -eq 'Updated' }).Count
     $skipped = @($Results | Where-Object { $_.Status -eq 'Skipped' }).Count
     $failed = @($Results | Where-Object { $_.Status -eq 'Failed' }).Count
     $rejectedCount = @($Rejected).Count
     $issueCount = $failed + $rejectedCount
 
     $titleText.Text = if ($issueCount -eq 0) { 'Import complete' } else { 'Import finished with some issues' }
-    $summaryText.Text = "$uploaded imported  |  $skipped already on Quest  |  $rejectedCount incompatible  |  $failed failed"
+    $summaryText.Text = "$uploaded imported  |  $updated updated  |  $skipped already current  |  $rejectedCount incompatible  |  $failed failed"
 
     $rows = New-Object 'System.Collections.ObjectModel.ObservableCollection[object]'
     foreach ($result in $Results) {
         if ($result.Status -eq 'Uploaded') {
             $rows.Add([pscustomobject]@{ Status='Imported'; Home=$result.Remote; Details='Ready in Quest Home Switcher.' })
+        } elseif ($result.Status -eq 'Updated') {
+            $rows.Add([pscustomobject]@{ Status='Updated'; Home=$result.Remote; Details='The previous Library-managed file was replaced safely.' })
         } elseif ($result.Status -eq 'Skipped') {
             $rows.Add([pscustomobject]@{ Status='Already there'; Home=$result.Remote; Details='The identical Home is already on your Quest.' })
         } else {
@@ -1304,6 +1693,164 @@ function Show-HomeImportResults([object[]]$Results, [object[]]$Rejected, [object
     $resultWindow.ShowDialog() | Out-Null
 }
 
+function New-OfficialHomeLibraryWindow {
+    [xml]$libraryXaml = @'
+<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Official Meta Home Library" Width="1080" Height="720" MinWidth="920" MinHeight="600"
+        WindowStartupLocation="CenterOwner" ResizeMode="CanResize"
+        Background="#080D14" Foreground="#F4F7FB" FontFamily="Segoe UI">
+  <Window.Resources>
+    <Style TargetType="Button">
+      <Setter Property="Background" Value="#55E0B5"/><Setter Property="Foreground" Value="#07110E"/>
+      <Setter Property="FontWeight" Value="Bold"/><Setter Property="FontSize" Value="14"/>
+      <Setter Property="Height" Value="54"/><Setter Property="BorderThickness" Value="0"/>
+      <Setter Property="Cursor" Value="Hand"/><Setter Property="Padding" Value="20,0"/>
+    </Style>
+    <Style x:Key="LibrarySecondaryButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+      <Setter Property="Background" Value="#182535"/><Setter Property="Foreground" Value="#D7E1ED"/>
+      <Setter Property="BorderBrush" Value="#34465B"/><Setter Property="BorderThickness" Value="1"/>
+    </Style>
+    <Style TargetType="DataGrid">
+      <Setter Property="Background" Value="#0D1621"/><Setter Property="Foreground" Value="#EAF0F6"/>
+      <Setter Property="BorderBrush" Value="#26394D"/><Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="GridLinesVisibility" Value="Horizontal"/><Setter Property="HorizontalGridLinesBrush" Value="#203044"/>
+      <Setter Property="HeadersVisibility" Value="Column"/><Setter Property="RowHeight" Value="48"/>
+      <Setter Property="ColumnHeaderHeight" Value="42"/><Setter Property="CanUserAddRows" Value="False"/>
+      <Setter Property="CanUserDeleteRows" Value="False"/><Setter Property="AutoGenerateColumns" Value="False"/>
+      <Setter Property="SelectionMode" Value="Single"/><Setter Property="SelectionUnit" Value="FullRow"/>
+    </Style>
+    <Style TargetType="DataGridColumnHeader">
+      <Setter Property="Background" Value="#152233"/><Setter Property="Foreground" Value="#9FB0C4"/>
+      <Setter Property="FontWeight" Value="SemiBold"/><Setter Property="BorderBrush" Value="#26394D"/>
+      <Setter Property="Padding" Value="12,0"/>
+    </Style>
+    <Style TargetType="DataGridCell">
+      <Setter Property="Background" Value="Transparent"/><Setter Property="BorderThickness" Value="0"/>
+      <Setter Property="Padding" Value="12,0"/><Setter Property="VerticalContentAlignment" Value="Center"/>
+    </Style>
+  </Window.Resources>
+  <Grid Margin="34,28,34,28">
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/>
+    </Grid.RowDefinitions>
+
+    <StackPanel>
+      <TextBlock Text="VERIFIED OFFICIAL COLLECTION" Foreground="#55E0B5" FontSize="12" FontWeight="Bold"/>
+      <TextBlock Text="Official Meta Home Library" FontSize="32" FontWeight="Bold" Margin="0,8,0,5"/>
+      <TextBlock Text="Install new Homes or update Library-managed copies. Your own imported APKs are never replaced."
+                 Foreground="#AEBBCB" FontSize="15" TextWrapping="Wrap"/>
+    </StackPanel>
+
+    <Grid Grid.Row="1" Margin="0,22,0,14">
+      <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+      <Border Background="#101B28" BorderBrush="#2A3E52" BorderThickness="1" CornerRadius="8" Padding="14,8" Margin="0,0,12,0">
+        <TextBox x:Name="LibrarySearchBox" Background="Transparent" Foreground="#F4F7FB" BorderThickness="0"
+                 FontSize="15" VerticalContentAlignment="Center" ToolTip="Search by Home name"/>
+      </Border>
+      <Button x:Name="LibrarySelectAllButton" Grid.Column="1" Content="SELECT ALL" Style="{StaticResource LibrarySecondaryButton}" Width="130" Margin="0,0,10,0"/>
+      <Button x:Name="LibraryClearButton" Grid.Column="2" Content="CLEAR" Style="{StaticResource LibrarySecondaryButton}" Width="100"/>
+    </Grid>
+
+    <Border Grid.Row="2" Background="#0D1621" BorderBrush="#26394D" BorderThickness="1" CornerRadius="12" Padding="1">
+      <DataGrid x:Name="LibraryGrid">
+        <DataGrid.Columns>
+          <DataGridTemplateColumn Header="ADD" Width="70">
+            <DataGridTemplateColumn.CellTemplate>
+              <DataTemplate>
+                <CheckBox IsChecked="{Binding Selected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                          IsEnabled="{Binding CanSelect}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+              </DataTemplate>
+            </DataGridTemplateColumn.CellTemplate>
+          </DataGridTemplateColumn>
+          <DataGridTextColumn Header="OFFICIAL META HOME" Binding="{Binding DisplayName}" IsReadOnly="True" Width="2.4*"/>
+          <DataGridTextColumn Header="DOWNLOAD" Binding="{Binding SizeText}" IsReadOnly="True" Width="1*"/>
+          <DataGridTextColumn Header="STATUS" Binding="{Binding Status}" IsReadOnly="True" Width="1.5*"/>
+        </DataGrid.Columns>
+      </DataGrid>
+    </Border>
+
+    <Grid Grid.Row="3" Margin="0,18,0,0">
+      <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+      <StackPanel VerticalAlignment="Center">
+        <TextBlock x:Name="LibrarySummaryText" Foreground="#9FB0C4" FontSize="13"/>
+        <TextBlock x:Name="LibraryErrorText" Foreground="#F4C96B" FontSize="13" Margin="0,5,0,0" Visibility="Collapsed"/>
+      </StackPanel>
+      <Button x:Name="LibraryCancelButton" Grid.Column="1" Content="CANCEL" Style="{StaticResource LibrarySecondaryButton}" Width="140" Margin="0,0,12,0"/>
+      <Button x:Name="LibraryContinueButton" Grid.Column="2" Content="INSTALL / UPDATE" Width="220"/>
+    </Grid>
+  </Grid>
+</Window>
+'@
+    $reader = New-Object System.Xml.XmlNodeReader $libraryXaml
+    return [Windows.Markup.XamlReader]::Load($reader)
+}
+
+function Show-OfficialHomeLibrary([object]$Catalog, [object]$Owner) {
+    if (-not $Catalog -or -not $Catalog.Homes) { throw 'The verified Official Meta Home Library is empty.' }
+    $libraryWindow = New-OfficialHomeLibraryWindow
+    if ($Owner) { $libraryWindow.Owner = $Owner }
+    $grid = $libraryWindow.FindName('LibraryGrid')
+    $searchBox = $libraryWindow.FindName('LibrarySearchBox')
+    $selectAllButton = $libraryWindow.FindName('LibrarySelectAllButton')
+    $clearButton = $libraryWindow.FindName('LibraryClearButton')
+    $cancelButton = $libraryWindow.FindName('LibraryCancelButton')
+    $continueButton = $libraryWindow.FindName('LibraryContinueButton')
+    $summaryText = $libraryWindow.FindName('LibrarySummaryText')
+    $errorText = $libraryWindow.FindName('LibraryErrorText')
+    $allRows = @($Catalog.Homes)
+    $grid.ItemsSource = $allRows
+    $installedCount = @($allRows | Where-Object { $_.LibraryState -eq 'Installed' }).Count
+    $updateCount = @($allRows | Where-Object { $_.LibraryState -eq 'UpdateAvailable' }).Count
+    $newCount = @($allRows | Where-Object { $_.LibraryState -eq 'NotInstalled' }).Count
+    $summaryText.Text = "$installedCount installed - $updateCount update(s) - $newCount ready to install - $($Catalog.ComingSoonCount) coming soon - catalog $($Catalog.CatalogVersion) ($($Catalog.Source.ToLowerInvariant()))."
+    if (@($allRows | Where-Object { $_.CanSelect }).Count -eq 0) {
+        $continueButton.IsEnabled = $false
+        $errorText.Text = if ($Catalog.Diagnostic) {
+            'The online Library could not be verified. The embedded catalog remains available for review.'
+        } else {
+            'No verified Library downloads are available yet. You can still review the catalog.'
+        }
+        $errorText.Visibility = 'Visible'
+    }
+
+    $searchBox.Add_TextChanged({
+        $needle = $searchBox.Text.Trim()
+        $grid.ItemsSource = if ([string]::IsNullOrWhiteSpace($needle)) {
+            $allRows
+        } else {
+            @($allRows | Where-Object { $_.DisplayName.IndexOf($needle, [System.StringComparison]::OrdinalIgnoreCase) -ge 0 })
+        }
+        $grid.Items.Refresh()
+    })
+    $selectAllButton.Add_Click({
+        foreach ($row in @($grid.ItemsSource)) { $row.Selected = [bool]$row.CanSelect }
+        $grid.Items.Refresh()
+        $errorText.Visibility = 'Collapsed'
+    })
+    $clearButton.Add_Click({
+        foreach ($row in $allRows) { $row.Selected = $false }
+        $grid.Items.Refresh()
+    })
+    $cancelButton.Add_Click({ $libraryWindow.Close() })
+    $continueButton.Add_Click({
+        $grid.CommitEdit([System.Windows.Controls.DataGridEditingUnit]::Cell, $true) | Out-Null
+        $grid.CommitEdit([System.Windows.Controls.DataGridEditingUnit]::Row, $true) | Out-Null
+        $selected = @($allRows | Where-Object { $_.Selected -and $_.CanSelect -and $_.Installable })
+        if ($selected.Count -eq 0) {
+            $errorText.Text = 'Select at least one Official Meta Home to continue.'
+            $errorText.Visibility = 'Visible'
+            return
+        }
+        $libraryWindow.Tag = $selected
+        $libraryWindow.DialogResult = $true
+        $libraryWindow.Close()
+    })
+    $libraryWindow.ShowDialog() | Out-Null
+    if ($libraryWindow.DialogResult -eq $true) { return @($libraryWindow.Tag) }
+    return $null
+}
+
 function ConvertTo-RemoteShellLiteral([string]$Value) {
     if ($Value.Contains("'")) {
         throw 'Unsafe quote in generated remote path.'
@@ -1316,6 +1863,14 @@ function Ensure-RemoteImportDirectory([string]$Serial) {
     $create = Invoke-Adb @('-s', $Serial, 'shell', "mkdir -p $directory") -AllowFailure
     if ($create.ExitCode -ne 0 -or $create.Output -match '(?i)error|exception|denied') {
         throw "The Quest Homes download folder could not be created:`n$($create.Output)"
+    }
+}
+
+function Ensure-RemoteOfficialHomeLibraryDirectory([string]$Serial) {
+    $directory = ConvertTo-RemoteShellLiteral $script:OfficialHomeLibraryDirectory
+    $create = Invoke-Adb @('-s', $Serial, 'shell', "mkdir -p $directory") -AllowFailure
+    if ($create.ExitCode -ne 0 -or $create.Output -match '(?i)error|exception|denied') {
+        throw "The managed Official Library folder could not be created on the Quest:`n$($create.Output)"
     }
 }
 
@@ -1354,6 +1909,40 @@ function Remove-RemoteImportFile([string]$Serial, [string]$RemotePath) {
     Invoke-Adb @('-s', $Serial, 'shell', "rm -f $literal") -AllowFailure | Out-Null
 }
 
+function Update-OfficialHomeLibraryQuestState([string]$Serial, [object]$Catalog) {
+    if (-not $Catalog -or -not $Catalog.Homes) { throw 'The Official Home Library catalog is required.' }
+    foreach ($libraryHome in @($Catalog.Homes)) {
+        if (-not $libraryHome.Installable) {
+            $libraryHome.LibraryState = 'ComingSoon'
+            continue
+        }
+        $libraryHome.ManagedRemotePath = "$($script:OfficialHomeLibraryDirectory)/$($libraryHome.TargetFileName)"
+        if (-not $libraryHome.CanSelect) {
+            $libraryHome.LibraryState = 'Unavailable'
+            continue
+        }
+        if (-not (Test-RemoteFileExists $Serial $libraryHome.ManagedRemotePath)) {
+            $libraryHome.LibraryState = 'NotInstalled'
+            $libraryHome.Status = 'Not installed - ready to download'
+            continue
+        }
+        $remoteHash = Get-RemoteFileSha256 $Serial $libraryHome.ManagedRemotePath
+        if (-not $remoteHash) {
+            $libraryHome.LibraryState = 'Unknown'
+            $libraryHome.CanSelect = $false
+            $libraryHome.Status = 'Installed file could not be verified'
+        } elseif ([string]::Equals($remoteHash, [string]$libraryHome.ApkSha256, [System.StringComparison]::OrdinalIgnoreCase)) {
+            $libraryHome.LibraryState = 'Installed'
+            $libraryHome.CanSelect = $false
+            $libraryHome.Status = 'Installed - up to date'
+            $libraryHome.SizeText = 'Installed'
+        } else {
+            $libraryHome.LibraryState = 'UpdateAvailable'
+            $libraryHome.Status = 'Update available'
+        }
+    }
+}
+
 function Get-RemoteImportTarget([string]$Serial, [string]$SafeName, [string]$LocalHash) {
     for ($index = 1; $index -le 999; $index++) {
         $candidateName = Add-ApkNameSuffix $SafeName $index
@@ -1370,7 +1959,7 @@ function Get-RemoteImportTarget([string]$Serial, [string]$SafeName, [string]$Loc
     throw 'More than 999 files with the same safe name already exist in Quest Homes.'
 }
 
-function Send-HomeApk([string]$Serial, [string]$LocalPath, [string]$DesiredName) {
+function Send-HomeApk([string]$Serial, [string]$LocalPath, [string]$DesiredName, [switch]$RequireRemoteSha256) {
     $localFile = Get-Item -LiteralPath $LocalPath
     $localHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $LocalPath).Hash
     $safeName = ConvertTo-SafeApkName $(if ($DesiredName) { $DesiredName } else { $LocalPath })
@@ -1379,29 +1968,112 @@ function Send-HomeApk([string]$Serial, [string]$LocalPath, [string]$DesiredName)
         return [pscustomobject]@{ Status='Skipped'; Local=$localFile.Name; Remote=$target.Name; Verification='Identical SHA-256 already present.' }
     }
 
-    $push = Invoke-Adb @('-s', $Serial, 'push', $LocalPath, $target.Path) -AllowFailure
+    # Upload to a unique sibling file first. The final .apk name only appears after
+    # size/hash verification and one same-filesystem rename, so the Switcher cannot
+    # scan or activate a partially copied Home.
+    $temporaryPath = "$($target.Path).upload-$PID-$([guid]::NewGuid().ToString('N')).part"
+    $push = Invoke-Adb @('-s', $Serial, 'push', $LocalPath, $temporaryPath) -AllowFailure
     # Successful `adb push` progress is written to stderr. Windows PowerShell wraps
     # that text in a NativeCommandError record even though adb returns exit code 0.
     # Trust the process exit code here; size and SHA-256 are verified below.
     if ($push.ExitCode -ne 0) {
-        Remove-RemoteImportFile $Serial $target.Path
+        Remove-RemoteImportFile $Serial $temporaryPath
         throw "ADB push failed for $($localFile.Name):`n$($push.Output)"
     }
 
-    $remoteSize = Get-RemoteFileSize $Serial $target.Path
+    $remoteSize = Get-RemoteFileSize $Serial $temporaryPath
     if ($null -eq $remoteSize -or $remoteSize -ne $localFile.Length) {
-        Remove-RemoteImportFile $Serial $target.Path
+        Remove-RemoteImportFile $Serial $temporaryPath
         throw "Size verification failed for $($localFile.Name). The partial Quest copy was removed."
     }
 
-    $remoteHash = Get-RemoteFileSha256 $Serial $target.Path
+    $remoteHash = Get-RemoteFileSha256 $Serial $temporaryPath
+    if ($RequireRemoteSha256 -and -not $remoteHash) {
+        Remove-RemoteImportFile $Serial $temporaryPath
+        throw "SHA-256 verification is unavailable on this Quest. The verified Library Home was not imported."
+    }
     if ($remoteHash -and $remoteHash -ne $localHash) {
-        Remove-RemoteImportFile $Serial $target.Path
+        Remove-RemoteImportFile $Serial $temporaryPath
         throw "SHA-256 verification failed for $($localFile.Name). The invalid Quest copy was removed."
     }
 
-    $verification = if ($remoteHash) { 'Size and SHA-256 verified.' } else { 'Size verified; sha256sum is unavailable on this Quest.' }
+    $temporaryLiteral = ConvertTo-RemoteShellLiteral $temporaryPath
+    $targetLiteral = ConvertTo-RemoteShellLiteral $target.Path
+    $commit = Invoke-Adb @('-s', $Serial, 'shell', "if [ -e $targetLiteral ]; then exit 73; fi; mv $temporaryLiteral $targetLiteral") -AllowFailure
+    if ($commit.ExitCode -ne 0) {
+        Remove-RemoteImportFile $Serial $temporaryPath
+        throw "The verified Home could not be committed atomically on the Quest. No existing Home was replaced.`n$($commit.Output)"
+    }
+
+    $verification = if ($remoteHash) { 'Size and SHA-256 verified; imported atomically.' } else { 'Size verified and imported atomically; sha256sum is unavailable on this Quest.' }
     return [pscustomobject]@{ Status='Uploaded'; Local=$localFile.Name; Remote=$target.Name; Verification=$verification }
+}
+
+function Send-ManagedOfficialHomeApk([string]$Serial, [string]$LocalPath, [object]$LibraryHome) {
+    if (-not $LibraryHome -or -not $LibraryHome.Installable) { throw 'A verified Official Library Home is required.' }
+    $localFile = Get-Item -LiteralPath $LocalPath
+    $localHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $LocalPath).Hash
+    if (-not [string]::Equals($localHash, [string]$LibraryHome.ApkSha256, [System.StringComparison]::OrdinalIgnoreCase)) {
+        throw 'The cached Official Library Home no longer matches its catalog hash.'
+    }
+    $safeName = ConvertTo-SafeApkName $LibraryHome.TargetFileName
+    if ($safeName -cne [string]$LibraryHome.TargetFileName) { throw 'The managed Library target name is not safe.' }
+    $targetPath = "$($script:OfficialHomeLibraryDirectory)/$safeName"
+    $exists = Test-RemoteFileExists $Serial $targetPath
+    $existingHash = if ($exists) { Get-RemoteFileSha256 $Serial $targetPath } else { '' }
+    if ($exists -and -not $existingHash) { throw 'The existing managed Library Home could not be verified, so it was left untouched.' }
+    if ($existingHash -and [string]::Equals($existingHash, $localHash, [System.StringComparison]::OrdinalIgnoreCase)) {
+        return [pscustomobject]@{ Status='Skipped'; Local=$localFile.Name; Remote=$safeName; Verification='Installed Library Home is already up to date.' }
+    }
+
+    $token = "$PID-$([guid]::NewGuid().ToString('N'))"
+    $temporaryPath = "$targetPath.upload-$token.part"
+    $backupPath = "$targetPath.backup-$token"
+    $push = Invoke-Adb @('-s', $Serial, 'push', $LocalPath, $temporaryPath) -AllowFailure
+    if ($push.ExitCode -ne 0) {
+        Remove-RemoteImportFile $Serial $temporaryPath
+        throw "ADB push failed for $($localFile.Name):`n$($push.Output)"
+    }
+    $remoteSize = Get-RemoteFileSize $Serial $temporaryPath
+    $remoteHash = Get-RemoteFileSha256 $Serial $temporaryPath
+    if ($null -eq $remoteSize -or $remoteSize -ne $localFile.Length -or -not $remoteHash -or
+        -not [string]::Equals($remoteHash, $localHash, [System.StringComparison]::OrdinalIgnoreCase)) {
+        Remove-RemoteImportFile $Serial $temporaryPath
+        throw 'The downloaded Library Home failed its final Quest size or SHA-256 verification. The partial copy was removed.'
+    }
+
+    $temporaryLiteral = ConvertTo-RemoteShellLiteral $temporaryPath
+    $targetLiteral = ConvertTo-RemoteShellLiteral $targetPath
+    $backupLiteral = ConvertTo-RemoteShellLiteral $backupPath
+    $commitCommand = if ($exists) {
+        "mv $targetLiteral $backupLiteral || exit 71; if mv $temporaryLiteral $targetLiteral; then exit 0; fi; mv $backupLiteral $targetLiteral; exit 72"
+    } else {
+        "if [ -e $targetLiteral ]; then exit 73; fi; mv $temporaryLiteral $targetLiteral"
+    }
+    $commit = Invoke-Adb @('-s', $Serial, 'shell', $commitCommand) -AllowFailure
+    if ($commit.ExitCode -ne 0) {
+        Remove-RemoteImportFile $Serial $temporaryPath
+        if ($exists) {
+            Invoke-Adb @('-s', $Serial, 'shell', "if [ ! -e $targetLiteral ] && [ -e $backupLiteral ]; then mv $backupLiteral $targetLiteral; fi") -AllowFailure | Out-Null
+        }
+        throw "The managed Library Home could not be committed atomically. The previous file was preserved.`n$($commit.Output)"
+    }
+
+    $finalSize = Get-RemoteFileSize $Serial $targetPath
+    $finalHash = Get-RemoteFileSha256 $Serial $targetPath
+    if ($finalSize -ne $localFile.Length -or -not $finalHash -or
+        -not [string]::Equals($finalHash, $localHash, [System.StringComparison]::OrdinalIgnoreCase)) {
+        Remove-RemoteImportFile $Serial $targetPath
+        if ($exists) { Invoke-Adb @('-s', $Serial, 'shell', "mv $backupLiteral $targetLiteral") -AllowFailure | Out-Null }
+        throw 'Post-update verification failed. The previous managed Library Home was restored when available.'
+    }
+    if ($exists) { Remove-RemoteImportFile $Serial $backupPath }
+    return [pscustomobject]@{
+        Status = if ($exists) { 'Updated' } else { 'Uploaded' }
+        Local = $localFile.Name
+        Remote = $safeName
+        Verification = if ($exists) { 'Previous managed Library file replaced atomically after SHA-256 verification.' } else { 'Installed in the managed Library folder after SHA-256 verification.' }
+    }
 }
 
 function Invoke-SwitcherFastMode([scriptblock]$Status, [scriptblock]$ConfirmMigration) {
@@ -1431,12 +2103,76 @@ function Invoke-HomeImport([object[]]$Accepted, [scriptblock]$Status) {
     return [object[]]$results.ToArray()
 }
 
+function Invoke-OfficialHomeLibrary([object]$Owner, [scriptblock]$Status) {
+    $catalog = Sync-OfficialHomeLibraryCatalog $Status
+    $releaseDiagnostic = [string]$catalog.Diagnostic
+    $quest = $null
+    $releaseReady = $false
+    try {
+        Get-OfficialHomeLibraryRelease $catalog $Status | Out-Null
+        $releaseReady = $true
+    } catch {
+        $releaseDiagnostic = $_.Exception.Message
+        foreach ($libraryHome in @($catalog.Homes | Where-Object { $_.Installable })) {
+            $libraryHome.CanSelect = $false
+            $libraryHome.Status = 'Waiting for a verified Library release'
+        }
+    }
+    if ($releaseReady) {
+        try {
+            $quest = Get-ReadyQuest $Status
+            & $Status 'Checking installed Official Library Homes...' 12
+            Ensure-RemoteOfficialHomeLibraryDirectory $quest.Serial
+            Update-OfficialHomeLibraryQuestState $quest.Serial $catalog
+        } catch {
+            $releaseDiagnostic = $_.Exception.Message
+            foreach ($libraryHome in @($catalog.Homes | Where-Object { $_.Installable })) {
+                $libraryHome.CanSelect = $false
+                $libraryHome.Status = 'Connect and authorize the Quest to check this Home'
+            }
+        }
+    }
+    $selected = Show-OfficialHomeLibrary $catalog $Owner
+    if ($null -eq $selected -or @($selected).Count -eq 0) {
+        return [pscustomobject]@{ Canceled=$true; Selected=0; Results=@(); Diagnostic=$releaseDiagnostic }
+    }
+
+    if (-not $quest) { throw 'Reconnect and authorize the Quest before installing a Library Home.' }
+    & $Status 'Preparing the managed Official Library folder...' 18
+    Ensure-RemoteOfficialHomeLibraryDirectory $quest.Serial
+    $results = New-Object System.Collections.Generic.List[object]
+    $selection = @($selected)
+    for ($index = 0; $index -lt $selection.Count; $index++) {
+        $libraryHome = $selection[$index]
+        $base = 20 + [int](($index / [double]$selection.Count) * 74)
+        try {
+            Assert-OfficialHomeLibrarySpace $quest.Serial ([int64]$libraryHome.ApkSize)
+            & $Status "Downloading and verifying $($libraryHome.DisplayName)..." $base
+            $localPath = Save-VerifiedOfficialHome $libraryHome
+            & $Status "Importing $($libraryHome.DisplayName) atomically..." ([Math]::Min(94, $base + 3))
+            $results.Add((Send-ManagedOfficialHomeApk $quest.Serial $localPath $libraryHome))
+        } catch {
+            $results.Add([pscustomobject]@{
+                Status = 'Failed'
+                Local = $libraryHome.DisplayName
+                Remote = ''
+                Verification = $_.Exception.Message
+            })
+        }
+    }
+    return [pscustomobject]@{
+        Canceled = $false
+        Selected = $selection.Count
+        Results = [object[]]$results.ToArray()
+    }
+}
+
 Add-Type -AssemblyName PresentationFramework, PresentationCore, WindowsBase
 
 [xml]$xaml = @'
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Quest Home Switcher Setup" Width="1060" Height="770" MinWidth="930" MinHeight="700"
+        Title="Quest Home Switcher Setup" Width="1180" Height="790" MinWidth="1040" MinHeight="720"
         WindowStartupLocation="CenterScreen" ResizeMode="CanResize"
         Background="#080D14" Foreground="#F4F7FB" FontFamily="Segoe UI">
   <Window.Resources>
@@ -1460,10 +2196,10 @@ Add-Type -AssemblyName PresentationFramework, PresentationCore, WindowsBase
 
     <StackPanel>
       <Border Background="#17372F" BorderBrush="#2B806A" BorderThickness="1" Padding="10,5" HorizontalAlignment="Left">
-        <TextBlock Text="QUEST HOME SWITCHER SETUP 1.1" Foreground="#65E9C0" FontSize="12" FontWeight="Bold"/>
+        <TextBlock Text="QUEST HOME SWITCHER SETUP 1.5" Foreground="#65E9C0" FontSize="12" FontWeight="Bold"/>
       </Border>
       <TextBlock Text="One setup. One clear result." FontSize="34" FontWeight="Bold" Margin="0,14,0,6"/>
-      <TextBlock Text="Detects your Quest and Shizuku state, installs the Home Switcher, then opens it for you." Foreground="#AEB9C9" FontSize="17"/>
+      <TextBlock Text="Set up the Switcher, import your own Homes, or choose verified originals from the Official Meta Home Library." Foreground="#AEB9C9" FontSize="17"/>
     </StackPanel>
 
     <Grid Grid.Row="1" Margin="0,26,0,20">
@@ -1496,11 +2232,12 @@ Add-Type -AssemblyName PresentationFramework, PresentationCore, WindowsBase
         <TextBlock Grid.Column="1" Text="NORMAL FLOW: SET UP / REPAIR" Foreground="#8192A7" FontSize="12" FontWeight="Bold"/>
       </Grid>
       <Grid Grid.Row="1" Margin="0,10,0,0">
-        <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+        <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
         <Button x:Name="ImportButton" Grid.Column="0" Style="{StaticResource SecondaryButton}" Content="IMPORT HOME APKS" Margin="0,0,10,0"/>
-        <Button x:Name="FastSwitcherButton" Grid.Column="1" Style="{StaticResource SecondaryButton}" Content="UPDATE / OPEN SWITCHER"/>
-        <Button x:Name="WirelessButton" Grid.Column="3" Style="{StaticResource SecondaryButton}" Content="WIRELESS DEBUGGING" Margin="0,0,10,0"/>
-        <Button x:Name="SetupButton" Grid.Column="4" Content="SET UP / REPAIR"/>
+        <Button x:Name="LibraryButton" Grid.Column="1" Style="{StaticResource SecondaryButton}" Content="OFFICIAL LIBRARY" Margin="0,0,10,0"/>
+        <Button x:Name="FastSwitcherButton" Grid.Column="2" Style="{StaticResource SecondaryButton}" Content="UPDATE / OPEN SWITCHER"/>
+        <Button x:Name="WirelessButton" Grid.Column="4" Style="{StaticResource SecondaryButton}" Content="WIRELESS DEBUGGING" Margin="0,0,10,0"/>
+        <Button x:Name="SetupButton" Grid.Column="5" Content="SET UP / REPAIR"/>
       </Grid>
     </Grid>
   </Grid>
@@ -1514,19 +2251,23 @@ if ($SelfTest) {
     $required = @(
         'Find-Adb','Install-PlatformTools','Invoke-Adb','Get-QuestState','Get-ReadyQuest','Get-PackageInfo',
         'Get-ShizukuState','ConvertTo-ProjectVersion','Get-ProjectReleaseVersionCode','Test-SetupFileVersionMatch','Get-SwitcherState',
-        'Get-ProjectReleaseAsset','Save-VerifiedProjectAsset','Sync-ProjectRelease','Start-VerifiedSetupUpdate',
+        'Select-LatestProjectRelease','Get-ProjectReleaseAsset','Save-VerifiedProjectAsset','Sync-ProjectRelease','Start-VerifiedSetupUpdate',
         'Get-Shizuku117Apk','Get-LatestShizukuApk',
         'Enable-AndroidDeveloperOptions','Open-QuestWirelessDebugging','Open-ShizukuManager',
         'Install-PairingVersion','Update-ShizukuAfterPairing','Try-StartInstalledShizuku',
         'Test-SwitcherPayload','Invoke-SwitcherSignatureMigration','Ensure-SwitcherInstalled','Start-Switcher',
-        'Test-ByteSequence','Read-ZipEntryBytes','Get-ZipEntrySha256','ConvertTo-ReadableHomeName','Test-HomeApk',
+        'Test-ByteSequence','Read-ZipEntryBytes','Get-ZipEntrySha256','ConvertTo-ReadableHomeName','Test-HomeApk','Format-FileSize',
+        'Read-OfficialHomeLibraryCatalog','Select-LatestOfficialHomeLibraryRelease','Sync-OfficialHomeLibraryCatalog','Get-OfficialHomeLibraryRelease','Save-VerifiedOfficialHome',
+        'Get-LocalFreeBytes','Get-QuestFreeBytes','Assert-OfficialHomeLibrarySpace',
         'Resolve-ExistingDirectory','Get-DownloadsDirectory','Get-DefaultHomeImportSearchRoots',
         'Find-HomeEditorCookedDirectory','Read-HomeImportDirectory','Save-HomeImportDirectory','Get-HomeImportInitialDirectory',
         'ConvertTo-SafeApkName','Add-ApkNameSuffix','New-HomeImportReviewItems','Test-HomeImportReviewNames',
         'New-HomeImportReviewWindow','Show-HomeImportReview','New-HomeImportResultWindow','Get-FriendlyHomeImportError','Show-HomeImportResults',
-        'ConvertTo-RemoteShellLiteral','Ensure-RemoteImportDirectory','Test-RemoteFileExists',
+        'New-OfficialHomeLibraryWindow','Show-OfficialHomeLibrary',
+        'ConvertTo-RemoteShellLiteral','Ensure-RemoteImportDirectory','Ensure-RemoteOfficialHomeLibraryDirectory','Test-RemoteFileExists',
         'Get-RemoteFileSha256','Get-RemoteFileSize','Remove-RemoteImportFile','Get-RemoteImportTarget','Send-HomeApk',
-        'Invoke-SwitcherFastMode','Invoke-HomeImport'
+        'Update-OfficialHomeLibraryQuestState','Send-ManagedOfficialHomeApk',
+        'Invoke-SwitcherFastMode','Invoke-HomeImport','Invoke-OfficialHomeLibrary'
     )
     foreach ($name in $required) {
         if (-not (Get-Command $name -CommandType Function -ErrorAction SilentlyContinue)) {
@@ -1536,7 +2277,63 @@ if ($SelfTest) {
     if (-not $window) {
         throw 'Self-test failed: XAML window was not created.'
     }
+    if (-not $window.FindName('LibraryButton')) {
+        throw 'Self-test failed: Official Meta Home Library button is missing.'
+    }
     Test-SwitcherPayload | Out-Null
+
+    $catalog = Read-OfficialHomeLibraryCatalog
+    if (-not $catalog -or @($catalog.Homes).Count -ne 20 -or $catalog.AvailableCount -ne 16 -or
+        $catalog.ComingSoonCount -ne 4 -or $catalog.TotalBytes -ne 853087094L) {
+        throw 'Self-test failed: pinned Official Meta Home Library catalog metadata.'
+    }
+    $channelFixtures = @(
+        [pscustomobject]@{ draft=$false; prerelease=$false; tag_name='v1.5'; url='https://api.github.com/repos/nikitat21/Quest-Home-Switcher/releases/151' },
+        [pscustomobject]@{ draft=$false; prerelease=$true; tag_name='homes-v1.5.0'; url='https://api.github.com/repos/nikitat21/Quest-Home-Switcher/releases/152' },
+        [pscustomobject]@{ draft=$false; prerelease=$false; tag_name='homes-v9.9.9'; url='https://api.github.com/repos/nikitat21/Quest-Home-Switcher/releases/153' }
+    )
+    if ((Select-LatestProjectRelease $channelFixtures).Release.tag_name -cne 'v1.5' -or
+        (Select-LatestOfficialHomeLibraryRelease $channelFixtures).Release.tag_name -cne 'homes-v1.5.0') {
+        throw 'Self-test failed: application and Home Library release channels are not isolated.'
+    }
+    $libraryWindow = New-OfficialHomeLibraryWindow
+    try {
+        if (-not $libraryWindow -or -not $libraryWindow.FindName('LibraryGrid') -or
+            -not $libraryWindow.FindName('LibrarySearchBox') -or -not $libraryWindow.FindName('LibraryContinueButton')) {
+            throw 'Self-test failed: Official Meta Home Library XAML.'
+        }
+        if ($libraryWindow.FindName('LibraryGrid').Columns.Count -ne 4 -or
+            $libraryWindow.FindName('LibraryGrid').Columns[3].Header -ne 'STATUS' -or
+            $libraryWindow.FindName('LibraryContinueButton').Content -ne 'INSTALL / UPDATE') {
+            throw 'Self-test failed: Official Meta Home Library columns.'
+        }
+    } finally {
+        if ($libraryWindow) { $libraryWindow.Close() }
+    }
+
+    $catalogTestBase = [System.IO.Path]::GetFullPath((Join-Path ([System.IO.Path]::GetTempPath()) 'QuestHomeSwitcherCatalogTest'))
+    $catalogTestRoot = [System.IO.Path]::GetFullPath((Join-Path $catalogTestBase ([guid]::NewGuid().ToString('N'))))
+    try {
+        New-Item -ItemType Directory -Force -Path $catalogTestRoot | Out-Null
+        $tamperedPath = Join-Path $catalogTestRoot 'tampered.json'
+        [System.IO.File]::WriteAllText($tamperedPath, (Get-Content -LiteralPath $script:OfficialHomeLibraryPath -Raw) + ' ', [System.Text.UTF8Encoding]::new($false))
+        $tamperedRejected = $false
+        try { Read-OfficialHomeLibraryCatalog $tamperedPath $script:ExpectedOfficialHomeLibrarySha256 | Out-Null } catch { $tamperedRejected = $true }
+        if (-not $tamperedRejected) { throw 'Self-test failed: modified Library catalog passed the pinned SHA-256 check.' }
+
+        $semanticPath = Join-Path $catalogTestRoot 'semantic.json'
+        $semanticText = (Get-Content -LiteralPath $script:OfficialHomeLibraryPath -Raw).Replace('"Blue Hill Gold Mine"', '"Community Home"')
+        [System.IO.File]::WriteAllText($semanticPath, $semanticText, [System.Text.UTF8Encoding]::new($false))
+        $semanticHash = (Get-FileHash -LiteralPath $semanticPath -Algorithm SHA256).Hash
+        $semanticRejected = $false
+        try { Read-OfficialHomeLibraryCatalog $semanticPath $semanticHash | Out-Null } catch { $semanticRejected = $true }
+        if (-not $semanticRejected) { throw 'Self-test failed: non-official Library scene identity passed semantic validation.' }
+    } finally {
+        $safeCatalogPrefix = $catalogTestBase.TrimEnd([System.IO.Path]::DirectorySeparatorChar) + [System.IO.Path]::DirectorySeparatorChar
+        if ($catalogTestRoot.StartsWith($safeCatalogPrefix, [System.StringComparison]::OrdinalIgnoreCase) -and (Test-Path -LiteralPath $catalogTestRoot)) {
+            Remove-Item -LiteralPath $catalogTestRoot -Recurse -Force
+        }
+    }
 
     $updateTestBase = [System.IO.Path]::GetFullPath((Join-Path ([System.IO.Path]::GetTempPath()) 'QuestHomeSwitcherUpdateTest'))
     $updateTestRoot = [System.IO.Path]::GetFullPath((Join-Path $updateTestBase ([guid]::NewGuid().ToString('N'))))
@@ -1564,16 +2361,16 @@ if ($SelfTest) {
         [System.IO.File]::WriteAllBytes($sourceSetup, $setupBytes)
         $apkHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $sourceApk).Hash
         $setupHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $sourceSetup).Hash
-        $apkName = 'Quest-Home-Switcher-v1.2.apk'
-        $setupName = 'Quest-Home-Switcher-Setup-v1.2.exe'
-        $apkUrl = "https://github.com/nikitat21/Quest-Home-Switcher/releases/download/v1.2/$apkName"
-        $setupUrl = "https://github.com/nikitat21/Quest-Home-Switcher/releases/download/v1.2/$setupName"
+        $apkName = 'Quest-Home-Switcher-v1.6.apk'
+        $setupName = 'Quest-Home-Switcher-Setup-v1.6.exe'
+        $apkUrl = "https://github.com/nikitat21/Quest-Home-Switcher/releases/download/v1.6/$apkName"
+        $setupUrl = "https://github.com/nikitat21/Quest-Home-Switcher/releases/download/v1.6/$setupName"
         $script:UpdateMockSources = @{ $apkUrl=$sourceApk; $setupUrl=$sourceSetup }
         $script:UpdateMockRelease = [pscustomobject]@{
             draft = $false
             prerelease = $false
-            tag_name = 'v1.2'
-            body = '<!-- quest-home-switcher-version-code: 15 -->'
+            tag_name = 'v1.6'
+            body = '<!-- quest-home-switcher-version-code: 16 -->'
             url = 'https://api.github.com/repos/nikitat21/Quest-Home-Switcher/releases/120'
             assets = @(
                 [pscustomobject]@{ name=$apkName; state='uploaded'; size=(Get-Item $sourceApk).Length; digest="sha256:$apkHash"; browser_download_url=$apkUrl },
@@ -1597,15 +2394,15 @@ if ($SelfTest) {
         $script:ProjectReleaseChecked = $false
         $script:ProjectReleaseResult = $null
         $script:SwitcherApk = $originalUpdateState.SwitcherApk
-        $script:ExpectedSwitcherVersionCode = 14
-        $script:ExpectedSwitcherVersionName = '1.1'
-        $script:ExpectedSwitcherSha256 = 'BB077E351F66363D7EB8C057A488DB85A2D2004E63AF1F3497FFC83ECCD4E13F'
+        $script:ExpectedSwitcherVersionCode = 15
+        $script:ExpectedSwitcherVersionName = '1.5'
+        $script:ExpectedSwitcherSha256 = '2E241D0C3F559E994631EB408D29A1F60206F3FD19A4BCE7967FC127F9E2B118'
         $script:SwitcherPayloadSource = 'Embedded'
         $silentUpdateStatus = { param([string]$Text, [int]$Percent) }
         $verifiedUpdate = Sync-ProjectRelease $silentUpdateStatus
-        if ($verifiedUpdate.Mode -ne 'Updated' -or $verifiedUpdate.Version -ne '1.2') { throw 'Self-test failed: verified GitHub release selection.' }
-        if ($script:SwitcherPayloadSource -ne 'Remote' -or $script:ExpectedSwitcherVersionName -ne '1.2' -or
-            $script:ExpectedSwitcherVersionCode -ne 15 -or $verifiedUpdate.ApkVersionCode -ne 15) {
+        if ($verifiedUpdate.Mode -ne 'Updated' -or $verifiedUpdate.Version -ne '1.6') { throw 'Self-test failed: verified GitHub release selection.' }
+        if ($script:SwitcherPayloadSource -ne 'Remote' -or $script:ExpectedSwitcherVersionName -ne '1.6' -or
+            $script:ExpectedSwitcherVersionCode -ne 16 -or $verifiedUpdate.ApkVersionCode -ne 16) {
             throw 'Self-test failed: verified remote APK version propagation.'
         }
         if ($script:UpdateMockDownloadCalls -ne 2 -or -not (Test-Path -LiteralPath $verifiedUpdate.ApkPath) -or -not (Test-Path -LiteralPath $verifiedUpdate.SetupPath)) { throw 'Self-test failed: verified release asset staging.' }
@@ -1614,21 +2411,60 @@ if ($SelfTest) {
             throw 'Self-test failed: staged release hashes.'
         }
 
+        # The Library accepts only the exact pinned release assets. A catalog entry
+        # never supplies a free-form URL, and a single digest/size mismatch closes
+        # the complete Library release before any download begins.
+        $libraryCatalogTest = Read-OfficialHomeLibraryCatalog
+        $libraryAssets = @(
+            [pscustomobject]@{
+                name = $script:OfficialHomeLibraryCatalogAssetName
+                state = 'uploaded'
+                size = (Get-Item -LiteralPath $script:OfficialHomeLibraryPath).Length
+                digest = "sha256:$($libraryCatalogTest.CatalogSha256)"
+                browser_download_url = "https://github.com/nikitat21/Quest-Home-Switcher/releases/download/homes-v1.5.0/$($script:OfficialHomeLibraryCatalogAssetName)"
+            }
+        ) + @($libraryCatalogTest.Homes | Where-Object { $_.Installable } | ForEach-Object {
+            [pscustomobject]@{
+                name = $_.AssetName
+                state = 'uploaded'
+                size = $_.ApkSize
+                digest = "sha256:$($_.ApkSha256)"
+                browser_download_url = "https://github.com/nikitat21/Quest-Home-Switcher/releases/download/homes-v1.5.0/$($_.AssetName)"
+            }
+        })
+        $script:UpdateMockRelease = [pscustomobject]@{
+            draft = $false
+            prerelease = $true
+            tag_name = 'homes-v1.5.0'
+            url = 'https://api.github.com/repos/nikitat21/Quest-Home-Switcher/releases/150'
+            assets = $libraryAssets
+        }
+        Get-OfficialHomeLibraryRelease $libraryCatalogTest $silentUpdateStatus | Out-Null
+        if (@($libraryCatalogTest.Homes | Where-Object { $_.CanSelect }).Count -ne 16) {
+            throw 'Self-test failed: verified Official Home Library release selection.'
+        }
+        $libraryAssets[0].digest = 'sha256:' + ('0' * 64)
+        $libraryMismatchRejected = $false
+        try { Get-OfficialHomeLibraryRelease (Read-OfficialHomeLibraryCatalog) $silentUpdateStatus | Out-Null } catch { $libraryMismatchRejected = $true }
+        if (-not $libraryMismatchRejected) {
+            throw 'Self-test failed: mismatched Official Home Library asset digest was accepted.'
+        }
+
         # An equal release must not replace the embedded payload or redownload assets.
         $script:UpdateMockRelease = [pscustomobject]@{
             draft = $false
             prerelease = $false
-            tag_name = 'v1.1'
-            url = 'https://api.github.com/repos/nikitat21/Quest-Home-Switcher/releases/110'
+            tag_name = 'v1.5'
+            url = 'https://api.github.com/repos/nikitat21/Quest-Home-Switcher/releases/150'
             assets = @()
         }
         $script:UpdateMockDownloadCalls = 0
         $script:ProjectReleaseChecked = $false
         $script:ProjectReleaseResult = $null
         $script:SwitcherApk = $originalUpdateState.SwitcherApk
-        $script:ExpectedSwitcherVersionCode = 14
-        $script:ExpectedSwitcherVersionName = '1.1'
-        $script:ExpectedSwitcherSha256 = 'BB077E351F66363D7EB8C057A488DB85A2D2004E63AF1F3497FFC83ECCD4E13F'
+        $script:ExpectedSwitcherVersionCode = 15
+        $script:ExpectedSwitcherVersionName = '1.5'
+        $script:ExpectedSwitcherSha256 = '2E241D0C3F559E994631EB408D29A1F60206F3FD19A4BCE7967FC127F9E2B118'
         $script:SwitcherPayloadSource = 'Embedded'
         $equalRelease = Sync-ProjectRelease $silentUpdateStatus
         if ($equalRelease.Mode -ne 'Current' -or $script:UpdateMockDownloadCalls -ne 0 -or $script:SwitcherPayloadSource -ne 'Embedded') {
@@ -1636,28 +2472,28 @@ if ($SelfTest) {
         }
 
         $missingDigestRelease = [pscustomobject]@{
-            tag_name = 'v1.2'
+            tag_name = 'v1.6'
             assets = @([pscustomobject]@{ name=$apkName; state='uploaded'; size=300000; digest=''; browser_download_url=$apkUrl })
         }
         $missingDigestRejected = $false
         try { Get-ProjectReleaseAsset $missingDigestRelease $apkName | Out-Null } catch { $missingDigestRejected = $true }
         if (-not $missingDigestRejected) { throw 'Self-test failed: missing GitHub digest was accepted.' }
 
-        $validMarkerCode = Get-ProjectReleaseVersionCode ([pscustomobject]@{ body='<!-- quest-home-switcher-version-code: 15 -->' })
-        if ($validMarkerCode -ne 15) { throw 'Self-test failed: release version-code marker propagation.' }
+        $validMarkerCode = Get-ProjectReleaseVersionCode ([pscustomobject]@{ body='<!-- quest-home-switcher-version-code: 16 -->' })
+        if ($validMarkerCode -ne 16) { throw 'Self-test failed: release version-code marker propagation.' }
         foreach ($invalidBody in @(
             '',
             '<!-- quest-home-switcher-version-code: 0 -->',
             '<!-- quest-home-switcher-version-code: nope -->',
-            '<!-- quest-home-switcher-version-code: 15 --><!-- quest-home-switcher-version-code: 16 -->'
+            '<!-- quest-home-switcher-version-code: 16 --><!-- quest-home-switcher-version-code: 17 -->'
         )) {
             $invalidMarkerRejected = $false
             try { Get-ProjectReleaseVersionCode ([pscustomobject]@{ body=$invalidBody }) | Out-Null } catch { $invalidMarkerRejected = $true }
             if (-not $invalidMarkerRejected) { throw 'Self-test failed: missing, malformed, or duplicate release version-code marker was accepted.' }
         }
-        if (-not (Test-SetupFileVersionMatch '1.2.0.0' '1.2') -or
-            (Test-SetupFileVersionMatch '1.1.0.0' '1.2') -or
-            (Test-SetupFileVersionMatch '1.2.0.1' '1.2')) {
+        if (-not (Test-SetupFileVersionMatch '1.6.0.0' '1.6') -or
+            (Test-SetupFileVersionMatch '1.5.0.0' '1.6') -or
+            (Test-SetupFileVersionMatch '1.6.0.1' '1.6')) {
             throw 'Self-test failed: staged setup FileVersion validation.'
         }
 
@@ -1666,13 +2502,13 @@ if ($SelfTest) {
         $script:ProjectReleaseChecked = $false
         $script:ProjectReleaseResult = $null
         $script:SwitcherApk = $originalUpdateState.SwitcherApk
-        $script:ExpectedSwitcherVersionCode = 14
-        $script:ExpectedSwitcherVersionName = '1.1'
-        $script:ExpectedSwitcherSha256 = 'BB077E351F66363D7EB8C057A488DB85A2D2004E63AF1F3497FFC83ECCD4E13F'
+        $script:ExpectedSwitcherVersionCode = 15
+        $script:ExpectedSwitcherVersionName = '1.5'
+        $script:ExpectedSwitcherSha256 = '2E241D0C3F559E994631EB408D29A1F60206F3FD19A4BCE7967FC127F9E2B118'
         $script:SwitcherPayloadSource = 'Embedded'
         $offlineResult = Sync-ProjectRelease $silentUpdateStatus
         if ($offlineResult.Mode -ne 'EmbeddedFallback' -or $script:SwitcherPayloadSource -ne 'Embedded' -or
-            $script:ExpectedSwitcherVersionName -ne '1.1' -or $script:ExpectedSwitcherVersionCode -ne 14) {
+            $script:ExpectedSwitcherVersionName -ne '1.5' -or $script:ExpectedSwitcherVersionCode -ne 15) {
             throw 'Self-test failed: offline embedded fallback.'
         }
     } finally {
@@ -1808,12 +2644,14 @@ if ($SelfTest) {
             $script:PushTestRemoteSize = (Get-Item -LiteralPath $validUtf8).Length
             $script:PushTestRemoteHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $validUtf8).Hash
             $script:PushTestRemoveCount = 0
+            $script:PushTestAdbCalls = New-Object System.Collections.Generic.List[object]
             Set-Item Function:Get-RemoteImportTarget -Value {
                 param([string]$Serial, [string]$SafeName, [string]$LocalHash)
                 return [pscustomobject]@{ Skip=$false; Name=$SafeName; Path="/sdcard/Download/Quest Homes/$SafeName" }
             }
             Set-Item Function:Invoke-Adb -Value {
                 param([string[]]$Arguments, [switch]$AllowFailure)
+                $script:PushTestAdbCalls.Add(@($Arguments))
                 return [pscustomobject]@{ ExitCode=$script:PushTestExitCode; Output='1 file pushed, 0 skipped. FullyQualifiedErrorId : NativeCommandError' }
             }
             Set-Item Function:Get-RemoteFileSize -Value { param([string]$Serial, [string]$Path) return $script:PushTestRemoteSize }
@@ -1821,7 +2659,11 @@ if ($SelfTest) {
             Set-Item Function:Remove-RemoteImportFile -Value { param([string]$Serial, [string]$Path) $script:PushTestRemoveCount++ }
 
             $pushSuccess = Send-HomeApk 'MOCK' $validUtf8 'Edited Home.apk'
-            if ($pushSuccess.Status -ne 'Uploaded' -or $script:PushTestRemoveCount -ne 0) { throw 'Self-test failed: successful adb stderr transfer.' }
+            $commitArguments = @($script:PushTestAdbCalls[1]) -join ' '
+            if ($pushSuccess.Status -ne 'Uploaded' -or $script:PushTestRemoveCount -ne 0 -or
+                $script:PushTestAdbCalls.Count -ne 2 -or $commitArguments -notmatch '\bmv\b' -or $commitArguments -notmatch '\.part') {
+                throw 'Self-test failed: verified atomic adb transfer.'
+            }
 
             $script:PushTestExitCode = 1
             $pushFailed = $false
@@ -1841,6 +2683,76 @@ if ($SelfTest) {
             if (-not $hashFailed -or $script:PushTestRemoveCount -ne 3) { throw 'Self-test failed: hash mismatch cleanup.' }
         } finally {
             foreach ($entry in $pushTestOriginals.GetEnumerator()) {
+                Set-Item "Function:$($entry.Key)" -Value $entry.Value
+            }
+        }
+
+        $managedTestOriginals = @{
+            'Test-RemoteFileExists' = (Get-Item Function:Test-RemoteFileExists).ScriptBlock
+            'Get-RemoteFileSize' = (Get-Item Function:Get-RemoteFileSize).ScriptBlock
+            'Get-RemoteFileSha256' = (Get-Item Function:Get-RemoteFileSha256).ScriptBlock
+            'Remove-RemoteImportFile' = (Get-Item Function:Remove-RemoteImportFile).ScriptBlock
+            'Invoke-Adb' = (Get-Item Function:Invoke-Adb).ScriptBlock
+        }
+        try {
+            $script:ManagedTestHash = (Get-FileHash -LiteralPath $validUtf8 -Algorithm SHA256).Hash
+            $script:ManagedTestLength = (Get-Item -LiteralPath $validUtf8).Length
+            $script:ManagedTestExists = $true
+            $script:ManagedTargetHashCalls = 0
+            $script:ManagedAdbCalls = New-Object System.Collections.Generic.List[object]
+            Set-Item Function:Test-RemoteFileExists -Value { param([string]$Serial,[string]$Path) return $script:ManagedTestExists }
+            Set-Item Function:Get-RemoteFileSize -Value { param([string]$Serial,[string]$Path) return $script:ManagedTestLength }
+            Set-Item Function:Get-RemoteFileSha256 -Value {
+                param([string]$Serial,[string]$Path)
+                if ($Path -match '\.upload-.*\.part$') { return $script:ManagedTestHash }
+                $script:ManagedTargetHashCalls++
+                if ($script:ManagedTestExists -and $script:ManagedTargetHashCalls -eq 1) { return ('B' * 64) }
+                return $script:ManagedTestHash
+            }
+            Set-Item Function:Remove-RemoteImportFile -Value { param([string]$Serial,[string]$Path) }
+            Set-Item Function:Invoke-Adb -Value {
+                param([string[]]$Arguments,[switch]$AllowFailure)
+                $script:ManagedAdbCalls.Add(@($Arguments))
+                return [pscustomobject]@{ ExitCode=0; Output='mock success' }
+            }
+            $managedHome = [pscustomobject]@{ Installable=$true; TargetFileName='Managed Home.apk'; ApkSha256=$script:ManagedTestHash }
+            $managedUpdate = Send-ManagedOfficialHomeApk 'MOCK' $validUtf8 $managedHome
+            $managedCommands = @($script:ManagedAdbCalls | ForEach-Object { $_ -join ' ' }) -join "`n"
+            if ($managedUpdate.Status -ne 'Updated' -or $managedCommands -notmatch 'Official Library' -or
+                $managedCommands -notmatch '\.backup-' -or $managedCommands -notmatch '\bmv\b') {
+                throw 'Self-test failed: managed Official Library atomic update path.'
+            }
+
+            $script:ManagedTestExists = $false
+            $script:ManagedTargetHashCalls = 0
+            $script:ManagedAdbCalls.Clear()
+            $managedInstall = Send-ManagedOfficialHomeApk 'MOCK' $validUtf8 $managedHome
+            if ($managedInstall.Status -ne 'Uploaded' -or (@($script:ManagedAdbCalls | ForEach-Object { $_ -join ' ' }) -join "`n") -match '\.backup-') {
+                throw 'Self-test failed: managed Official Library first install path.'
+            }
+
+            Set-Item Function:Test-RemoteFileExists -Value {
+                param([string]$Serial,[string]$Path)
+                return $Path -notmatch 'New Home\.apk$'
+            }
+            Set-Item Function:Get-RemoteFileSha256 -Value {
+                param([string]$Serial,[string]$Path)
+                if ($Path -match 'Current Home\.apk$') { return ('C' * 64) }
+                return ('D' * 64)
+            }
+            $stateCatalog = [pscustomobject]@{ Homes=@(
+                [pscustomobject]@{ Installable=$true; CanSelect=$true; TargetFileName='New Home.apk'; ApkSha256=('A' * 64); LibraryState='NotChecked'; ManagedRemotePath=''; Status=''; SizeText='1 MB' },
+                [pscustomobject]@{ Installable=$true; CanSelect=$true; TargetFileName='Current Home.apk'; ApkSha256=('C' * 64); LibraryState='NotChecked'; ManagedRemotePath=''; Status=''; SizeText='1 MB' },
+                [pscustomobject]@{ Installable=$true; CanSelect=$true; TargetFileName='Old Home.apk'; ApkSha256=('A' * 64); LibraryState='NotChecked'; ManagedRemotePath=''; Status=''; SizeText='1 MB' }
+            ) }
+            Update-OfficialHomeLibraryQuestState 'MOCK' $stateCatalog
+            if ($stateCatalog.Homes[0].LibraryState -ne 'NotInstalled' -or
+                $stateCatalog.Homes[1].LibraryState -ne 'Installed' -or $stateCatalog.Homes[1].CanSelect -or
+                $stateCatalog.Homes[2].LibraryState -ne 'UpdateAvailable' -or -not $stateCatalog.Homes[2].CanSelect) {
+                throw 'Self-test failed: Official Library installed/update state detection.'
+            }
+        } finally {
+            foreach ($entry in $managedTestOriginals.GetEnumerator()) {
                 Set-Item "Function:$($entry.Key)" -Value $entry.Value
             }
         }
@@ -1884,15 +2796,15 @@ if ($SelfTest) {
                 $mockOutput = 'package:/data/app/mock/switcher/base.apk'
             } elseif ($joined -match 'dumpsys package io\.github\.nikitat21\.questhomeswitcher') {
                 if ($script:MockSwitcherCase -eq 'SameCodeWrongName') {
-                    $mockOutput = "  versionCode=14 minSdk=29`n  versionName=unrelated-test-build"
+                    $mockOutput = "  versionCode=15 minSdk=29`n  versionName=unrelated-test-build"
                 } elseif ($script:MockSwitcherCase -eq 'SameNameWrongCode') {
-                    $mockOutput = "  versionCode=15 minSdk=29`n  versionName=1.1"
+                    $mockOutput = "  versionCode=14 minSdk=29`n  versionName=1.5"
                 } elseif ($script:MockSwitcherCase -eq 'Newer') {
-                    $mockOutput = "  versionCode=15 minSdk=29`n  versionName=1.2"
+                    $mockOutput = "  versionCode=16 minSdk=29`n  versionName=1.6"
                 } elseif ($script:MockSwitcherCase -eq 'Legacy') {
                     $mockOutput = "  versionCode=13 minSdk=29`n  versionName=1.0"
                 } else {
-                    $mockOutput = "  versionCode=14 minSdk=29`n  versionName=1.1"
+                    $mockOutput = "  versionCode=15 minSdk=29`n  versionName=1.5"
                 }
             }
 
@@ -2094,7 +3006,7 @@ if ($SelfTest) {
         }
     }
 
-    Write-Output 'SELF_TEST_OK_XAML_OK_PAYLOAD_OK_STATE_MACHINE_OK_HOME_IMPORT_OK_ADB_PUSH_OK_IMPORT_UI_OK_COOKED_PICKER_OK_PROFESSIONAL_NAMING_OK_SECURE_RELEASE_UPDATE_OK_SIGNATURE_MIGRATION_OK_FAST_MODES_NO_SHIZUKU_OK'
+    Write-Output 'SELF_TEST_OK_XAML_OK_PAYLOAD_OK_STATE_MACHINE_OK_HOME_IMPORT_OK_ADB_PUSH_OK_IMPORT_UI_OK_MANAGED_LIBRARY_UPDATES_OK_COOKED_PICKER_OK_PROFESSIONAL_NAMING_OK_SECURE_RELEASE_UPDATE_OK_SIGNATURE_MIGRATION_OK_FAST_MODES_NO_SHIZUKU_OK'
     exit 0
 }
 
@@ -2111,6 +3023,7 @@ $progress = $window.FindName('Progress')
 $setupButton = $window.FindName('SetupButton')
 $wirelessButton = $window.FindName('WirelessButton')
 $importButton = $window.FindName('ImportButton')
+$libraryButton = $window.FindName('LibraryButton')
 $fastSwitcherButton = $window.FindName('FastSwitcherButton')
 
 $updateStatus = {
@@ -2264,6 +3177,7 @@ $importButton.Add_Click({
     if ($dialog.FileNames.Count -gt 0) { Save-HomeImportDirectory $dialog.FileNames[0] | Out-Null }
 
     $importButton.IsEnabled = $false
+    $libraryButton.IsEnabled = $false
     $fastSwitcherButton.IsEnabled = $false
     $wirelessButton.IsEnabled = $false
     $setupButton.IsEnabled = $false
@@ -2318,6 +3232,51 @@ $importButton.Add_Click({
         $progress.Value = 0
     } finally {
         $importButton.IsEnabled = $true
+        $libraryButton.IsEnabled = $true
+        $fastSwitcherButton.IsEnabled = $true
+        $wirelessButton.IsEnabled = $true
+        $setupButton.IsEnabled = $true
+    }
+})
+
+$libraryButton.Add_Click({
+    $importButton.IsEnabled = $false
+    $libraryButton.IsEnabled = $false
+    $fastSwitcherButton.IsEnabled = $false
+    $wirelessButton.IsEnabled = $false
+    $setupButton.IsEnabled = $false
+    try {
+        $stageTitleText.Text = 'OFFICIAL META HOME LIBRARY'
+        & $updateStatus 'Opening the verified Official Meta Home Library...' 3
+        $library = Invoke-OfficialHomeLibrary $window $updateStatus
+        if ($library.Canceled) {
+            $statusText.Text = 'Official Meta Home Library closed'
+            $detailText.Text = 'Nothing was downloaded or copied to your Quest.'
+            $progress.Value = 0
+            return
+        }
+        $results = @($library.Results)
+        $uploaded = @($results | Where-Object { $_.Status -eq 'Uploaded' }).Count
+        $updated = @($results | Where-Object { $_.Status -eq 'Updated' }).Count
+        $skipped = @($results | Where-Object { $_.Status -eq 'Skipped' }).Count
+        $failed = @($results | Where-Object { $_.Status -eq 'Failed' }).Count
+        $stageTitleText.Text = if ($failed -eq 0) { 'OFFICIAL LIBRARY IMPORT COMPLETE' } else { 'OFFICIAL LIBRARY IMPORT FINISHED' }
+        $statusText.Text = "$uploaded installed, $updated updated, $skipped already current, $failed need attention"
+        $detailText.Text = if ($failed -eq 0) {
+            'Every selected Home was verified and imported atomically. Open Quest Home Switcher and press Refresh.'
+        } else {
+            'Verified Homes that completed are ready. Failed items did not replace or leave partial Home APKs on your Quest.'
+        }
+        $progress.Value = 100
+        Show-HomeImportResults $results @() $window
+    } catch {
+        $stageTitleText.Text = 'OFFICIAL LIBRARY - ACTION NEEDED'
+        $statusText.Text = 'The Official Meta Home Library could not continue'
+        $detailText.Text = $_.Exception.Message
+        $progress.Value = 0
+    } finally {
+        $importButton.IsEnabled = $true
+        $libraryButton.IsEnabled = $true
         $fastSwitcherButton.IsEnabled = $true
         $wirelessButton.IsEnabled = $true
         $setupButton.IsEnabled = $true
@@ -2326,6 +3285,7 @@ $importButton.Add_Click({
 
 $fastSwitcherButton.Add_Click({
     $importButton.IsEnabled = $false
+    $libraryButton.IsEnabled = $false
     $fastSwitcherButton.IsEnabled = $false
     $wirelessButton.IsEnabled = $false
     $setupButton.IsEnabled = $false
@@ -2347,6 +3307,7 @@ $fastSwitcherButton.Add_Click({
         $progress.Value = 0
     } finally {
         $importButton.IsEnabled = $true
+        $libraryButton.IsEnabled = $true
         $fastSwitcherButton.IsEnabled = $true
         $wirelessButton.IsEnabled = $true
         $setupButton.IsEnabled = $true
@@ -2356,6 +3317,7 @@ $fastSwitcherButton.Add_Click({
 $wirelessButton.Add_Click({
     $wirelessButton.IsEnabled = $false
     $importButton.IsEnabled = $false
+    $libraryButton.IsEnabled = $false
     $fastSwitcherButton.IsEnabled = $false
     try {
         $quest = Get-ReadyQuest $updateStatus
@@ -2370,6 +3332,7 @@ $wirelessButton.Add_Click({
     } finally {
         $wirelessButton.IsEnabled = $true
         $importButton.IsEnabled = $true
+        $libraryButton.IsEnabled = $true
         $fastSwitcherButton.IsEnabled = $true
     }
 })
@@ -2382,6 +3345,7 @@ $setupButton.Add_Click({
     $setupButton.IsEnabled = $false
     $wirelessButton.IsEnabled = $false
     $importButton.IsEnabled = $false
+    $libraryButton.IsEnabled = $false
     $fastSwitcherButton.IsEnabled = $false
     try {
         $stageTitleText.Text = 'SECURE UPDATE CHECK'
@@ -2404,6 +3368,7 @@ $setupButton.Add_Click({
         }
         $wirelessButton.IsEnabled = $true
         $importButton.IsEnabled = $true
+        $libraryButton.IsEnabled = $true
         $fastSwitcherButton.IsEnabled = $true
     }
 })

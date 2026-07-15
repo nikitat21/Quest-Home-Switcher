@@ -23,16 +23,16 @@ Use the files from the [latest GitHub Release](https://github.com/nikitat21/Ques
 
 | File | Choose this when |
 | --- | --- |
-| `Quest-Home-Switcher-Setup-v1.1.exe` | You want the recommended guided Windows installation, Shizuku setup, verified updates, and optional Home import. |
-| `Quest-Home-Switcher-v1.1.apk` | You already know how to sideload an APK, or you use a rooted Quest without Shizuku. |
+| `Quest-Home-Switcher-Setup-v1.5.exe` | You want the recommended guided Windows installation, Shizuku setup, verified updates, Home import, and the optional Official Meta Home Library. |
+| `Quest-Home-Switcher-v1.5.apk` | You already know how to sideload an APK, or you use a rooted Quest without Shizuku. |
 
-See [the v1.1 release notes](docs/RELEASE_v1.1.md) for the current fixes and known limitations.
+See [the v1.5 release notes](docs/RELEASE_v1.5.md) for the current changes, verified upgrade path, and Home Library details.
 
 ## Quick start
 
 1. Enable Meta Developer Mode for the headset and connect the Quest to a Windows PC over USB.
 2. Put on the headset and approve the USB debugging prompt. Enable **Always allow from this computer** when it is your own PC.
-3. Run `Quest-Home-Switcher-Setup-v1.1.exe` and select **SET UP / REPAIR**.
+3. Run `Quest-Home-Switcher-Setup-v1.5.exe` and select **SET UP / REPAIR**.
 4. Follow the headset instructions. If Shizuku is already running, setup leaves it untouched and goes directly to installing or updating Quest Home Switcher.
 5. Place compatible Home APKs in `Download/Quest Homes`, or use **IMPORT HOME APKS** in setup.
 6. Open Quest Home Switcher, approve its Shizuku permission once when asked, select a Home, and choose **Apply Home**.
@@ -51,7 +51,7 @@ The Windows setup provides the easiest way to add Homes:
 6. Select **CONTINUE TO IMPORT**. Missing `.apk` endings and unsafe filename characters are cleaned automatically without asking you to continue a second time. Only duplicate names need manual correction.
 7. Check the clear result window, select **DONE**, then open Quest Home Switcher in the headset and select **Refresh**.
 
-The setup validates every selected APK and copies accepted Homes to `Download/Quest Homes` on the headset. It does not include or download Home APKs for you.
+The setup validates every selected APK and copies accepted Homes to `Download/Quest Homes` on the headset. Alternatively, **OFFICIAL HOME LIBRARY** downloads only the Homes you select from a separately verified GitHub Library release. Home APKs are not embedded in the setup EXE or stored in the source tree.
 
 ## Features
 
@@ -67,6 +67,7 @@ The setup validates every selected APK and copies accepted Homes to `Download/Qu
 - Horizon Home reload after a successful switch; a full headset reboot is normally unnecessary.
 - Guided Windows setup that preserves an already-running Shizuku server.
 - Optional multi-file Home importer with readable names, collision handling, and upload verification.
+- Optional searchable Official Meta Home Library with Installed/Update status, per-file downloads, exact size/SHA-256 checks, local caching, and rollback-safe atomic Quest updates.
 
 ## Root or Shizuku?
 
@@ -83,7 +84,7 @@ The app selects Root mode automatically when verified root access is available. 
 - Meta Developer Mode and USB debugging for installation.
 - Windows 10 or 11 for the guided setup.
 - Either working Magisk/`su` root access, or Shizuku running through Wireless debugging.
-- User-provided compatible Quest Home APKs. This project does not include Home APKs or Meta assets.
+- Compatible Quest Home APKs supplied by the user, or an available entry selected from the optional online Home Library.
 
 ## Safety and rollback
 
@@ -105,6 +106,7 @@ Read [Troubleshooting](docs/TROUBLESHOOTING.md) before retrying a failed activat
 - Rootless mode needs compatible NoRoot-Spoof Home APKs. A normal Android APK is rejected even if its filename looks like a Home.
 - Firmware, root frameworks, and third-party Home packages vary. Root behavior and Home compatibility cannot be guaranteed on every Horizon OS build.
 - A third-party APK can contain unsafe code. Only use files from sources you trust.
+- The v1.5 online Library manages compatible NoRoot-Spoof Homes only. A separate opt-in catalog for installed Root Homes is planned for a later version and is intentionally not mixed into this release.
 
 ## Build from source
 
@@ -136,7 +138,7 @@ See [android-app/README.md](android-app/README.md) and [windows-setup/README.md]
 
 The Quest app has no analytics, advertising, accounts, or network communication of its own. It reads local APK files and communicates only with local Root or Shizuku services.
 
-The Windows setup contacts the official Google Platform Tools download and the official `RikkaApps/Shizuku` GitHub release source only when those components are required. It does not upload the user's Home APKs or headset data.
+The Windows setup contacts the official Google Platform Tools download and the official `RikkaApps/Shizuku` GitHub release source only when those components are required. When the user opens the Home Library, setup also checks this project's dedicated `homes-v…` GitHub prerelease channel and downloads only explicitly selected assets. It does not upload the user's Home APKs or headset data.
 
 ## Credits
 
@@ -145,7 +147,7 @@ The Windows setup contacts the official Google Platform Tools download and the o
 - [RikkaApps/Shizuku](https://github.com/RikkaApps/Shizuku) for the local privileged-service bridge used by rootless mode.
 - The Quest Home community for testing and compatibility research.
 
-All Meta names and assets remain the property of their respective owners. No Meta Home APKs or proprietary Home content are included.
+All Meta names and assets remain the property of their respective owners. No Home APK is embedded in the source repository or Windows setup executable; optional Library payloads are separate release assets.
 
 ## License
 

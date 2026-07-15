@@ -7,11 +7,13 @@ $root = Split-Path -Parent $MyInvocation.MyCommand.Path
 $source = Join-Path $root 'QuestHomeSwitcherSetupLauncher.cs'
 $script = Join-Path $root 'QuestHomeSwitcherSetup.ps1'
 $payload = Join-Path $root 'Quest-Home-Switcher.apk'
+$libraryCatalog = Join-Path $root 'Official-Home-Library-v1.5.json'
 $icon = Join-Path $root 'branding\Quest-Home-Switcher.ico'
-$output = Join-Path $root 'Quest-Home-Switcher-Setup-v1.1.exe'
-$expectedPayloadHash = 'BB077E351F66363D7EB8C057A488DB85A2D2004E63AF1F3497FFC83ECCD4E13F'
+$output = Join-Path $root 'Quest-Home-Switcher-Setup-v1.5.exe'
+$expectedPayloadHash = '2E241D0C3F559E994631EB408D29A1F60206F3FD19A4BCE7967FC127F9E2B118'
+$expectedLibraryCatalogHash = '7780962813A8F3AEAB55C195631A2C4DAB4F380B72CF79C514BFDDD0252D0019'
 
-foreach ($required in @($source, $script, $payload, $icon)) {
+foreach ($required in @($source, $script, $payload, $libraryCatalog, $icon)) {
     if (-not (Test-Path -LiteralPath $required)) {
         throw "Required build input is missing: $required"
     }
@@ -19,7 +21,11 @@ foreach ($required in @($source, $script, $payload, $icon)) {
 
 $actualPayloadHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $payload).Hash
 if ($actualPayloadHash -ne $expectedPayloadHash) {
-    throw 'Quest-Home-Switcher.apk does not match the expected permanently signed v1.1 payload.'
+    throw 'Quest-Home-Switcher.apk does not match the expected permanently signed v1.5 payload.'
+}
+$actualLibraryCatalogHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $libraryCatalog).Hash
+if ($actualLibraryCatalogHash -ne $expectedLibraryCatalogHash) {
+    throw 'Official-Home-Library-v1.5.json does not match the pinned verified catalog.'
 }
 
 $compilerCandidates = @(
@@ -40,6 +46,7 @@ if (Test-Path -LiteralPath $output) {
     "/win32icon:$icon" `
     "/resource:$script,QuestHomeSwitcherSetupAssistant.QuestHomeSwitcherSetup.ps1" `
     "/resource:$payload,QuestHomeSwitcherSetupAssistant.Quest-Home-Switcher.apk" `
+    "/resource:$libraryCatalog,QuestHomeSwitcherSetupAssistant.Official-Home-Library-v1.5.json" `
     /reference:System.Windows.Forms.dll `
     $source
 
@@ -52,7 +59,7 @@ if (-not $SkipSelfTest) {
     # by itself to an isolated build-test directory before the embedded-payload test.
     $testBase = [System.IO.Path]::GetFullPath((Join-Path ([System.IO.Path]::GetTempPath()) 'QuestHomeSwitcherSetupBuildTest'))
     $testRoot = [System.IO.Path]::GetFullPath((Join-Path $testBase ([guid]::NewGuid().ToString('N'))))
-    $testExe = Join-Path $testRoot 'Quest-Home-Switcher-Setup-v1.1.exe'
+    $testExe = Join-Path $testRoot 'Quest-Home-Switcher-Setup-v1.5.exe'
     try {
         New-Item -ItemType Directory -Force -Path $testRoot | Out-Null
         Copy-Item -LiteralPath $output -Destination $testExe
