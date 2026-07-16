@@ -9,9 +9,9 @@ $script = Join-Path $root 'QuestHomeSwitcherSetup.ps1'
 $payload = Join-Path $root 'Quest-Home-Switcher.apk'
 $libraryCatalog = Join-Path $root 'Official-Home-Library-v1.5.json'
 $icon = Join-Path $root 'branding\Quest-Home-Switcher.ico'
-$output = Join-Path $root 'Quest-Home-Switcher-Setup-v1.5.exe'
-$expectedPayloadHash = '2E241D0C3F559E994631EB408D29A1F60206F3FD19A4BCE7967FC127F9E2B118'
-$expectedLibraryCatalogHash = '7780962813A8F3AEAB55C195631A2C4DAB4F380B72CF79C514BFDDD0252D0019'
+$output = Join-Path $root 'Quest-Home-Switcher-Setup-v1.8.exe'
+$expectedPayloadHash = 'CFF3676D81209A2BC30C56A4587ECFC04789F6F0AF18733D84ADE04917362A50'
+$expectedLibraryCatalogHash = 'DDF843091444A27684D0AC76A4A3C663A0ACA6A54D0DDB6585D043080749ED23'
 
 foreach ($required in @($source, $script, $payload, $libraryCatalog, $icon)) {
     if (-not (Test-Path -LiteralPath $required)) {
@@ -21,7 +21,7 @@ foreach ($required in @($source, $script, $payload, $libraryCatalog, $icon)) {
 
 $actualPayloadHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $payload).Hash
 if ($actualPayloadHash -ne $expectedPayloadHash) {
-    throw 'Quest-Home-Switcher.apk does not match the expected permanently signed v1.5 payload.'
+    throw 'Quest-Home-Switcher.apk does not match the expected permanently signed v1.8 payload.'
 }
 $actualLibraryCatalogHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $libraryCatalog).Hash
 if ($actualLibraryCatalogHash -ne $expectedLibraryCatalogHash) {
@@ -59,7 +59,7 @@ if (-not $SkipSelfTest) {
     # by itself to an isolated build-test directory before the embedded-payload test.
     $testBase = [System.IO.Path]::GetFullPath((Join-Path ([System.IO.Path]::GetTempPath()) 'QuestHomeSwitcherSetupBuildTest'))
     $testRoot = [System.IO.Path]::GetFullPath((Join-Path $testBase ([guid]::NewGuid().ToString('N'))))
-    $testExe = Join-Path $testRoot 'Quest-Home-Switcher-Setup-v1.5.exe'
+    $testExe = Join-Path $testRoot 'Quest-Home-Switcher-Setup-v1.8.exe'
     try {
         New-Item -ItemType Directory -Force -Path $testRoot | Out-Null
         Copy-Item -LiteralPath $output -Destination $testExe

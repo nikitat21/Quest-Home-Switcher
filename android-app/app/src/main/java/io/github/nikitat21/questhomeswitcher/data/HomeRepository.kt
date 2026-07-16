@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Environment
 import io.github.nikitat21.questhomeswitcher.domain.HomeEnvironment
+import io.github.nikitat21.questhomeswitcher.domain.HomeEnvironmentSource
 import io.github.nikitat21.questhomeswitcher.domain.HomeEnvironmentType
 import io.github.nikitat21.questhomeswitcher.domain.QuestHomeContract
 import io.github.nikitat21.questhomeswitcher.shell.ShellRunner
@@ -34,23 +35,22 @@ class HomeRepository(context: Context) {
             .mapNotNull { apk ->
                 val sceneHash = sceneHash(apk) ?: return@mapNotNull null
                 val packageName = archivePackageName(apk.absolutePath)
+                val official = OfficialHomeCatalog.identify(packageName, sceneHash)
                 HomeEnvironment(
-                    displayName = OfficialHomeCatalog.resolve(
-                        packageName = packageName,
-                        sceneHash = sceneHash,
-                        fallback = apk.nameWithoutExtension.cleanHomeName(),
-                    ),
+                    displayName = official?.displayName ?: apk.nameWithoutExtension.cleanHomeName(),
                     apkPath = apk.absolutePath,
                     previewPath = findPreviewFor(apk)?.absolutePath,
                     sizeBytes = apk.length(),
                     lastModifiedMillis = apk.lastModified(),
                     packageName = packageName,
+                    source = homeSourceForPath(apk.absolutePath),
+                    officialHomeId = official?.id,
                     verifiedHomeApk = true,
                     sceneHash = sceneHash,
+                    knownSceneHashes = official?.sceneHashes ?: setOf(sceneHash.lowercase()),
                 )
             }
-            .distinctBy { it.sceneHash?.lowercase() ?: it.apkPath }
-            .sortedBy { it.displayName.lowercase() }
+            .let(::mergeHomeCandidates)
     }
 
     suspend fun loadHomesWithShell(shellRunner: ShellRunner): List<HomeEnvironment> {
@@ -122,49 +122,42 @@ class HomeRepository(context: Context) {
                 if (!cached.verified || cached.sceneHash.isNullOrBlank()) return@mapNotNull null
                 val apkPath = file.path
                 val fileName = apkPath.substringAfterLast('/')
+                val official = OfficialHomeCatalog.identify(
+                    packageName = null,
+                    sceneHash = cached.sceneHash,
+                )
                 HomeEnvironment(
-                    displayName = OfficialHomeCatalog.resolve(
-                        packageName = null,
-                        sceneHash = cached.sceneHash,
-                        fallback = fileName.substringBeforeLast('.').cleanHomeName(),
-                    ),
+                    displayName = official?.displayName
+                        ?: fileName.substringBeforeLast('.').cleanHomeName(),
                     apkPath = apkPath,
                     previewPath = file.previewPath,
                     sizeBytes = file.sizeBytes,
                     lastModifiedMillis = file.modifiedSeconds * 1000L,
+                    source = homeSourceForPath(apkPath),
+                    officialHomeId = official?.id,
                     verifiedHomeApk = true,
                     sceneHash = cached.sceneHash,
+                    knownSceneHashes = official?.sceneHashes ?: setOf(cached.sceneHash.lowercase()),
                 )
             }
-            .distinctBy { it.sceneHash?.lowercase() ?: it.apkPath }
-            .sortedBy { it.displayName.lowercase() }
+            .let(::mergeHomeCandidates)
     }
 
     suspend fun loadInstalledHomes(rootRunner: ShellRunner): List<HomeEnvironment> {
-        val command = """
-            for pkg in ${'$'}(pm list packages | sed 's/^package://'); do
-              case "${'$'}pkg" in
-                *environment*|*env.vista*|*env.footprint*) ;;
-                *) continue ;;
-              esac
-              path=${'$'}(pm path "${'$'}pkg" 2>/dev/null | sed -n 's/^package://p' | head -n 1)
-              [ -n "${'$'}path" ] || continue
-              unzip -l "${'$'}path" 2>/dev/null | grep -qE '[[:space:]]assets/scene\.zip${'$'}' || continue
-              printf '%s\t%s\t%s\n' "${'$'}pkg" "${'$'}path" "assets/scene.zip"
-            done
-        """.trimIndent()
+        val command = installedHomeLookupCommand()
         val result = rootRunner.run(command)
         if (!result.success) return emptyList()
         return result.output.lineSequence().mapNotNull { line ->
             val parts = line.split('\t')
             if (parts.size < 3) return@mapNotNull null
             val pkg = parts[0]
+            val sceneHash = parts.getOrNull(3)
+                ?.trim()
+                ?.lowercase()
+                ?.takeIf { it.matches(EXACT_SCENE_HASH) }
+            val official = OfficialHomeCatalog.identify(packageName = pkg, sceneHash = sceneHash)
             HomeEnvironment(
-                displayName = OfficialHomeCatalog.resolve(
-                    packageName = pkg,
-                    sceneHash = null,
-                    fallback = pkg.substringAfterLast('.').cleanHomeName(),
-                ),
+                displayName = official?.displayName ?: pkg.substringAfterLast('.').cleanHomeName(),
                 apkPath = parts[1],
                 previewPath = null,
                 sizeBytes = 0L,
@@ -172,6 +165,10 @@ class HomeRepository(context: Context) {
                 packageName = pkg,
                 sceneUri = "apk://$pkg/${parts[2]}",
                 installed = true,
+                source = HomeEnvironmentSource.ROOT_INSTALLED,
+                officialHomeId = official?.id,
+                sceneHash = sceneHash,
+                knownSceneHashes = official?.sceneHashes ?: setOfNotNull(sceneHash),
                 type = when {
                     ".env.vista." in pkg -> HomeEnvironmentType.VISTA
                     ".env.footprint." in pkg -> HomeEnvironmentType.FOOTPRINT
@@ -311,6 +308,76 @@ class HomeRepository(context: Context) {
     )
 }
 
+internal fun homeSourceForPath(path: String): HomeEnvironmentSource {
+    val normalized = path.replace('\\', '/').lowercase()
+    return if ("/download/quest homes/official library/" in normalized) {
+        HomeEnvironmentSource.OFFICIAL_LIBRARY
+    } else {
+        HomeEnvironmentSource.PERSONAL_IMPORT
+    }
+}
+
+internal fun installedHomeLookupCommand(): String = """
+    for pkg in ${'$'}(pm list packages | sed 's/^package://'); do
+      [ "${'$'}pkg" = "${QuestHomeContract.TargetPackage}" ] && continue
+      case "${'$'}pkg" in
+        *environment*|*env.vista*|*env.footprint*) ;;
+        *) continue ;;
+      esac
+      path=${'$'}(pm path "${'$'}pkg" 2>/dev/null | sed -n 's/^package://p' | head -n 1)
+      [ -n "${'$'}path" ] || continue
+      unzip -l "${'$'}path" 2>/dev/null | grep -qE '[[:space:]]assets/scene\.zip${'$'}' || continue
+      scene_hash=${'$'}(unzip -p "${'$'}path" assets/scene.zip 2>/dev/null | sha256sum 2>/dev/null | awk '{print ${'$'}1}')
+      printf '%s\t%s\t%s\t%s\n' "${'$'}pkg" "${'$'}path" "assets/scene.zip" "${'$'}scene_hash"
+    done
+""".trimIndent()
+
+internal fun mergeHomeCandidates(candidates: List<HomeEnvironment>): List<HomeEnvironment> {
+    return candidates
+        .groupBy(::homeIdentityKey)
+        .values
+        .map { group ->
+            val preferred = group.maxWithOrNull(
+                compareBy<HomeEnvironment> { sourcePriority(it.source) }
+                    .thenBy { it.lastModifiedMillis }
+                    .thenBy { it.sizeBytes }
+                    .thenBy { it.apkPath.lowercase() },
+            ) ?: error("A Home candidate group cannot be empty.")
+            val sceneAliases = group
+                .flatMap { home -> home.knownSceneHashes + listOfNotNull(home.sceneHash) }
+                .map { it.trim().lowercase() }
+                .filter { it.matches(EXACT_SCENE_HASH) }
+                .toSet()
+            val metadataSource = group.maxWithOrNull(
+                compareBy<HomeEnvironment> { it.previewPath != null }
+                    .thenBy { it.sizeBytes }
+                    .thenBy { it.lastModifiedMillis },
+            )
+            preferred.copy(
+                previewPath = preferred.previewPath ?: metadataSource?.previewPath,
+                sizeBytes = preferred.sizeBytes.takeIf { it > 0L } ?: (metadataSource?.sizeBytes ?: 0L),
+                knownSceneHashes = sceneAliases,
+            )
+        }
+        .sortedBy { it.displayName.lowercase() }
+}
+
+private fun homeIdentityKey(home: HomeEnvironment): String {
+    home.officialHomeId?.takeIf { it.isNotBlank() }?.let { return "official:${it.lowercase()}" }
+    home.sceneHash?.trim()?.lowercase()?.takeIf { it.matches(EXACT_SCENE_HASH) }
+        ?.let { return "scene:$it" }
+    if (home.installed) {
+        home.packageName?.takeIf { it.isNotBlank() }?.let { return "package:${it.lowercase()}" }
+    }
+    return "path:${home.apkPath.replace('\\', '/').lowercase()}"
+}
+
+private fun sourcePriority(source: HomeEnvironmentSource): Int = when (source) {
+    HomeEnvironmentSource.ROOT_INSTALLED -> 3
+    HomeEnvironmentSource.OFFICIAL_LIBRARY -> 2
+    HomeEnvironmentSource.PERSONAL_IMPORT -> 1
+}
+
 private const val ACTIVE_SCENE_HASH_PREFIX = "ACTIVE_SCENE_SHA256="
 private val EXACT_SCENE_HASH = Regex("^[0-9a-f]{64}${'$'}")
 
@@ -358,10 +425,10 @@ internal fun findHomeForActiveSceneOutput(
     if (activeSceneHashes.isEmpty()) return null
 
     return homes.firstOrNull { home ->
-        val normalizedHomeHash = home.sceneHash
-            ?.trim()
-            ?.lowercase()
-            ?.takeIf { it.matches(EXACT_SCENE_HASH) }
-        normalizedHomeHash != null && normalizedHomeHash in activeSceneHashes
+        val knownHashes = home.knownSceneHashes + listOfNotNull(home.sceneHash)
+        knownHashes.any { hash ->
+            val normalizedHash = hash.trim().lowercase()
+            normalizedHash.matches(EXACT_SCENE_HASH) && normalizedHash in activeSceneHashes
+        }
     }
 }

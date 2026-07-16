@@ -1,0 +1,59 @@
+name: Desktop Setup CI
+
+on:
+  push:
+    paths:
+      - "desktop-setup/**"
+      - ".github/workflows/desktop-setup-ci.yml"
+  pull_request:
+    paths:
+      - "desktop-setup/**"
+      - ".github/workflows/desktop-setup-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desktop-setup-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: ${{ matrix.name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Windows x64
+            os: windows-latest
+          - name: macOS
+            os: macos-latest
+          - name: Linux x64
+            os: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: desktop-setup
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Restore
+        run: dotnet restore QuestHomeSwitcher.DesktopSetup.sln
+
+      - name: Build
+        run: dotnet build QuestHomeSwitcher.DesktopSetup.sln --configuration Release --no-restore
+
+      - name: Run dependency-free core tests
+        run: dotnet run --project tests/QuestHomeSwitcher.Core.Tests --configuration Release --no-build
+
+      - name: Smoke-test CLI help
+        run: dotnet run --project src/QuestHomeSwitcher.Cli --configuration Release --no-build -- help

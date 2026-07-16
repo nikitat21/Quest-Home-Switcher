@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.8 - 2026-07-16
+
+- Merge multiple copies or scene revisions of the same official Home into one canonical card.
+- Prefer true installed Root environments, then managed Official Library copies, then personal imports.
+- Keep all known official scene hashes as active-Home aliases even when only one APK copy remains.
+- Require an actual Android root UID before entering Root mode and exclude the shared NoRoot carrier package from Root-direct scanning.
+- Label Home sources clearly as Root direct, Official Library, or Imported.
+- Harden app-private storage boundaries for the dormant built-in Wireless-ADB research path.
+- Add the first cross-platform desktop Core/CLI foundation for Windows, macOS, and Linux.
+- Keep Shizuku as the stable unrooted backend; built-in Wireless ADB is not enabled in 1.8.
+
+## Home Library hotfix homes-v1.5.1 - 2026-07-16
+
+- Hotfixed the verified Library catalog after the online fallback issue.
+- Disabled unsafe Futurescape and Mogu Hall Library downloads without touching personal imports.
+
 ## 1.5 - 2026-07-16
 
 - Added the optional searchable Official Meta Home Library to the Windows setup.

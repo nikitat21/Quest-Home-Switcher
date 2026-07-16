@@ -21,7 +21,8 @@ class RootShellRunner internal constructor(
     )
 
     override suspend fun isReady(): Boolean = withContext(Dispatchers.IO) {
-        runDirect("id", rootCheckTimeoutMillis).success
+        val result = runDirect("id", rootCheckTimeoutMillis)
+        result.success && ROOT_UID_PATTERN.containsMatchIn(result.output)
     }
 
     override suspend fun requestPermissionIfNeeded(requestCode: Int) {
@@ -128,5 +129,6 @@ class RootShellRunner internal constructor(
         private const val STREAM_DRAIN_TIMEOUT_MS = 2_000L
         private const val COMMAND_TIMEOUT_EXIT_CODE = 124
         private const val INTERRUPTED_EXIT_CODE = 130
+        private val ROOT_UID_PATTERN = Regex("(?:^|\\s)uid=0(?:\\(|\\s|$)")
     }
 }

@@ -1,4 +1,4 @@
-# Quest Home Switcher Setup 1.5
+# Quest Home Switcher Setup 1.8
 
 Guided, state-aware Windows setup for Quest Home Switcher. It detects the connected headset's current state and performs only the steps that are still required.
 
@@ -6,7 +6,7 @@ Guided, state-aware Windows setup for Quest Home Switcher. It detects the connec
 
 For normal installation, download and run only:
 
-- `Quest-Home-Switcher-Setup-v1.5.exe`
+- `Quest-Home-Switcher-Setup-v1.8.exe`
 
 The Switcher APK is embedded in the EXE. At launch, both the controller and APK are extracted to a unique isolated directory below the Windows temporary folder. The launcher verifies the embedded APK SHA-256 before PowerShell starts and removes the temporary runtime directory after setup closes.
 
@@ -53,7 +53,7 @@ Existing files are never silently replaced: an identical remote APK SHA-256 is s
 
 ## Optional Official Meta Home Library
 
-`OFFICIAL HOME LIBRARY` is an independent ADB-only tool. The embedded catalog provides a verified offline fallback and currently exposes 20 known pre-v81 official Homes: 16 tested entries are installable, while Cascadia, Meta Horizon Terrace, Oceanarium, and Storybook fail closed as **Coming soon**.
+`OFFICIAL HOME LIBRARY` is an independent ADB-only tool. The embedded catalog provides a verified offline fallback and currently exposes 20 known pre-v81 official Homes: 14 tested entries are installable, while Cascadia, Futurescape, Meta Horizon Terrace, Mogu Hall, Oceanarium, and Storybook fail closed as **Coming soon**.
 
 Opening the Library checks the project's public `homes-vX.Y.Z` prerelease channel. Library releases are intentionally GitHub prereleases so they never replace the latest final application release seen by older setup versions. The application updater accepts only final `vX.Y[.Z]` releases, while the Library accepts only non-draft `homes-vX.Y.Z` prereleases.
 
@@ -81,5 +81,5 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\Build.ps1
 - The Home importer does not rely on APK file names to decide compatibility.
 - Shizuku comes only from official `RikkaApps/Shizuku` GitHub releases.
 - Platform Tools come only from Google.
-- The embedded Switcher payload is the permanently signed `1.5` build. Its version and SHA-256 are pinned in both the setup script and one-file launcher.
+- The embedded Switcher payload is the permanently signed `1.8` build. Its version and SHA-256 are pinned in both the setup script and one-file launcher.
 - The embedded Library fallback is also SHA-256 pinned in the setup script, one-file launcher, and build script.

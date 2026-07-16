@@ -76,6 +76,24 @@ class RootShellRunnerTest {
         assertEquals("id", capturedCommand)
     }
 
+    @Test
+    fun `root readiness rejects successful shell uid`() = runBlocking {
+        val runner = runnerWith {
+            FakeProcess(stdout = "uid=2000(shell) gid=2000(shell)")
+        }
+
+        assertFalse(runner.isReady())
+    }
+
+    @Test
+    fun `root readiness accepts uid zero with supplementary output`() = runBlocking {
+        val runner = runnerWith {
+            FakeProcess(stdout = "context line\nuid=0(root) gid=0(root)")
+        }
+
+        assertTrue(runner.isReady())
+    }
+
     private fun runnerWith(
         commandTimeoutMillis: Long = 1_000L,
         processFactory: (String) -> Process,

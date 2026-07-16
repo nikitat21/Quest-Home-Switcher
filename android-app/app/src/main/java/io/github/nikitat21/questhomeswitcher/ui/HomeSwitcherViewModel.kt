@@ -5,6 +5,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.nikitat21.questhomeswitcher.BuildConfig
 import io.github.nikitat21.questhomeswitcher.data.HomeRepository
+import io.github.nikitat21.questhomeswitcher.data.mergeHomeCandidates
 import io.github.nikitat21.questhomeswitcher.domain.ActivateHomeUseCase
 import io.github.nikitat21.questhomeswitcher.domain.ActivationResult
 import io.github.nikitat21.questhomeswitcher.domain.HomeEnvironment
@@ -118,9 +119,14 @@ class HomeSwitcherViewModel(application: Application) : AndroidViewModel(applica
             )
         }
         val fileHomes = if (ready) repository.loadHomesWithShell(shellRunner) else repository.loadHomes()
-        val homes = if (rootReady) repository.loadInstalledHomes(rootRunner) + fileHomes else fileHomes
+        val homes = if (rootReady) {
+            mergeHomeCandidates(repository.loadInstalledHomes(rootRunner) + fileHomes)
+        } else {
+            fileHomes
+        }
         val activeHome = when {
             rootReady -> repository.findActiveInstalledHome(rootRunner, homes)
+                ?: repository.findActiveHomeWithShell(rootRunner, homes)
             ready -> repository.findActiveHomeWithShell(shellRunner, homes)
             else -> null
         }

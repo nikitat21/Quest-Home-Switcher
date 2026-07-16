@@ -9,16 +9,16 @@ using System.Windows.Forms;
 [assembly: AssemblyDescription("State-aware setup for Quest Home Switcher and Shizuku")]
 [assembly: AssemblyCompany("Quest Community Tools")]
 [assembly: AssemblyProduct("Quest Home Switcher Setup")]
-[assembly: AssemblyVersion("1.5.0.0")]
-[assembly: AssemblyFileVersion("1.5.0.0")]
+[assembly: AssemblyVersion("1.8.0.0")]
+[assembly: AssemblyFileVersion("1.8.0.0")]
 
 internal static class Program
 {
     private const string ScriptResourceName = "QuestHomeSwitcherSetupAssistant.QuestHomeSwitcherSetup.ps1";
     private const string PayloadResourceName = "QuestHomeSwitcherSetupAssistant.Quest-Home-Switcher.apk";
     private const string LibraryCatalogResourceName = "QuestHomeSwitcherSetupAssistant.Official-Home-Library-v1.5.json";
-    private const string ExpectedPayloadSha256 = "2E241D0C3F559E994631EB408D29A1F60206F3FD19A4BCE7967FC127F9E2B118";
-    private const string ExpectedLibraryCatalogSha256 = "7780962813A8F3AEAB55C195631A2C4DAB4F380B72CF79C514BFDDD0252D0019";
+    private const string ExpectedPayloadSha256 = "CFF3676D81209A2BC30C56A4587ECFC04789F6F0AF18733D84ADE04917362A50";
+    private const string ExpectedLibraryCatalogSha256 = "DDF843091444A27684D0AC76A4A3C663A0ACA6A54D0DDB6585D043080749ED23";
 
     [STAThread]
     private static void Main(string[] args)
@@ -26,7 +26,7 @@ internal static class Program
         string runtime = Path.Combine(
             Path.GetTempPath(),
             "QuestHomeSwitcherSetup",
-            "1.5",
+            "1.8",
             Guid.NewGuid().ToString("N"));
 
         try

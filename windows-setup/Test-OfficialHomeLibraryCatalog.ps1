@@ -42,7 +42,7 @@ $expectedHomes = @{
 }
 $readyIds = @(
     'blue-hill-gold-mine', 'classic-home', 'crystal-atrium', 'cyber-city',
-    'desert-terrace', 'futurescape', 'lakeside-peak', 'mogu-hall',
+    'desert-terrace', 'lakeside-peak',
     'mountain-study', 'paradiso', 'polar-village', 'quest-dome',
     'rockquarry', 'space-station', 'studio', 'winter-lodge'
 )

@@ -74,6 +74,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.nikitat21.questhomeswitcher.BuildConfig
 import io.github.nikitat21.questhomeswitcher.R
 import io.github.nikitat21.questhomeswitcher.domain.HomeEnvironment
+import io.github.nikitat21.questhomeswitcher.domain.HomeEnvironmentSource
 import io.github.nikitat21.questhomeswitcher.domain.HomeEnvironmentType
 import io.github.nikitat21.questhomeswitcher.shell.PrivilegeState
 
@@ -626,6 +627,14 @@ private fun HomeListItem(
                     } else if (home.installed) {
                         StatusTag(label = "Installed", color = AccentBlue)
                     }
+                    StatusTag(
+                        label = home.source.displayLabel,
+                        color = if (home.source == HomeEnvironmentSource.OFFICIAL_LIBRARY) {
+                            Accent
+                        } else {
+                            AccentBlue
+                        },
+                    )
                     Text(
                         text = size,
                         style = MaterialTheme.typography.labelMedium,
@@ -779,6 +788,7 @@ private fun HomeMetadata(home: HomeEnvironment, formattedSize: String) {
             if (home.installed) {
                 StatusTag(label = "Installed", color = Accent)
             }
+            StatusTag(label = home.source.displayLabel, color = AccentBlue)
             Text(
                 text = formattedSize,
                 style = MaterialTheme.typography.labelLarge,

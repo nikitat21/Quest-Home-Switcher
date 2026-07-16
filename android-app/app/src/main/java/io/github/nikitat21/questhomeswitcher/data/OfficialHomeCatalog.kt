@@ -8,6 +8,7 @@ internal object OfficialHomeCatalog {
         "com.meta.environment.prod.lakesidepeak" to "Lakeside Peak",
         "com.meta.environment.prod.monolith" to "Crystal Atrium",
         "com.meta.environment.prod.polarvillage" to "Polar Village",
+        "com.meta.environment.prod.rockquarry" to "Rockquarry",
         "com.meta.environment.prod.stinson.launchpad" to "Meta Horizon Terrace",
         "com.meta.environment.prod.storybook" to "Storybook",
         "com.meta.environment.prod.treehouse" to "Paradiso",
@@ -37,7 +38,8 @@ internal object OfficialHomeCatalog {
             "2BDF76BA5DCCDFCE6DB460A3FD2422F6AC617A1F55CF129ABC5D6D0257C7EE53").toTypedArray(),
         *hashes("Lakeside Peak",
             "3241C2572373E8F5DD400D4E0B905831C3CD0AD4CE81C5EDEEC1F046887A3683",
-            "1C1D3F7857E868F793AF3BBDD663B2DCBCC535E4436EDE5677FB1FC3563DBE46").toTypedArray(),
+            "1C1D3F7857E868F793AF3BBDD663B2DCBCC535E4436EDE5677FB1FC3563DBE46",
+            "553587B431FF523458B1EAE63FAC736992C85C6538852FC9FEE3397D178EF228").toTypedArray(),
         *hashes("Crystal Atrium",
             "1738D80E3A648F0EF73E304FD423B48F68A6C946B278DEAF9D19BF1CE1DD95DE",
             "3C16539B821D57C5704A56296B4C6CA22CFBE729BCC792C27B956718657857EC",
@@ -63,7 +65,8 @@ internal object OfficialHomeCatalog {
         *hashes("Cyber City",
             "34288D09200710F6CE53610192FB7EB07E4849ACAA37A85DA9B6C13AE8821662",
             "3C8D7CF57DBF6949A486F2FED4B6160E3FB3AEC96DBFE2BCC68594122A3560E9",
-            "0202C7BC3BF03102E1093211DE17BF96F65F3D8794E63C662E4B34A61C3A5E3F").toTypedArray(),
+            "0202C7BC3BF03102E1093211DE17BF96F65F3D8794E63C662E4B34A61C3A5E3F",
+            "09FB7EBE0703C9054C6401DAA552905D6486867DC7F48BC877A57D37B2E4FE19").toTypedArray(),
         *hashes("Quest Dome",
             "8E105686424230AE534FD8CC43E6E43C5005AF551356DB3EECD9FFD131BB37E4",
             "3CA225FC87E55DF7C5DE8BA68596D6B8104AF8768D488112AFB57A32F3AEDC47",
@@ -84,12 +87,36 @@ internal object OfficialHomeCatalog {
             "F2C091140A5F0B8A98D7D8DB1368455E6DE4048AD780103760E924ACEA72AD43").toTypedArray(),
         *hashes("Winter Lodge", "36FE9E252E9535391C288842B3819891910F139565035E9FDDA1CDE04F6EEF00").toTypedArray(),
         *hashes("Desert Terrace", "2509E83C772751604631C58BA92539FA8BE5600D32F8E6365DDBD78C4A291BEA").toTypedArray(),
+        *hashes("Rockquarry",
+            "82F4C04451A30E0EAB6154EFA686BCD0B6BBFB5E5DD8610353E128F285B5AB95",
+            "D81D1E062A42377371FAC4EBAAA39264C58D3C76ABBC8CDF752653AA3651D529").toTypedArray(),
         *hashes("Space Station", "D1ADE12BE1DC6989436EF4ACD766656A614AC5A0AFB144207C10F3A7666BB5B6").toTypedArray(),
         *hashes("Meta Home (System)", "8503FC8D849068116C313B761516DC32FC87C6B452F3099E07BD5BFE6A376EBD").toTypedArray(),
     )
 
-    fun resolve(packageName: String?, sceneHash: String?, fallback: String): String =
-        sceneHash?.let { sceneHashes[it.lowercase()] }
+    fun identify(packageName: String?, sceneHash: String?): OfficialHomeIdentity? {
+        val displayName = sceneHash?.let { sceneHashes[it.lowercase()] }
             ?: packageName?.let { packageNames[it.lowercase()] }
-            ?: fallback
+            ?: return null
+        val id = displayName
+            .lowercase()
+            .replace(Regex("[^a-z0-9]+"), "-")
+            .trim('-')
+        return OfficialHomeIdentity(
+            id = id,
+            displayName = displayName,
+            sceneHashes = sceneHashes
+                .filterValues { it == displayName }
+                .keys,
+        )
+    }
+
+    fun resolve(packageName: String?, sceneHash: String?, fallback: String): String =
+        identify(packageName, sceneHash)?.displayName ?: fallback
 }
+
+internal data class OfficialHomeIdentity(
+    val id: String,
+    val displayName: String,
+    val sceneHashes: Set<String>,
+)

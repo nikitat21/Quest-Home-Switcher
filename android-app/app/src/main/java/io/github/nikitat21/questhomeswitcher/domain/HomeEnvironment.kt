@@ -10,14 +10,23 @@ data class HomeEnvironment(
     val sceneUri: String? = null,
     val installed: Boolean = false,
     val type: HomeEnvironmentType = HomeEnvironmentType.ENVIRONMENT,
+    val source: HomeEnvironmentSource = HomeEnvironmentSource.PERSONAL_IMPORT,
+    val officialHomeId: String? = null,
     val verifiedHomeApk: Boolean = false,
     val sceneHash: String? = null,
+    val knownSceneHashes: Set<String> = emptySet(),
 )
 
 enum class HomeEnvironmentType {
     ENVIRONMENT,
     VISTA,
     FOOTPRINT,
+}
+
+enum class HomeEnvironmentSource(val displayLabel: String) {
+    ROOT_INSTALLED("Root direct"),
+    OFFICIAL_LIBRARY("Official Library"),
+    PERSONAL_IMPORT("Imported"),
 }
 
 data class ActivationResult(

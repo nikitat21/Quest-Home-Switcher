@@ -28,7 +28,7 @@ The normal storage-access prompt is not the same as USB debugging. If setup cann
 
 ### 2. Start the setup
 
-1. Download `Quest-Home-Switcher-Setup-v1.5.exe` from the latest final application release.
+1. Download `Quest-Home-Switcher-Setup-v1.8.exe` from the latest final application release. Normal Windows users should download the setup EXE, not the raw APK.
 2. Run the EXE and select **SET UP / REPAIR**.
 
 The Windows EXE is not Authenticode-signed yet, so Windows may show an **Unknown publisher** or reputation warning. Continue only when the file came from this repository's Releases page. The project does not ask you to disable antivirus protection.
@@ -83,7 +83,7 @@ After a full headset reboot, Shizuku itself must be started again. The Switcher 
 6. Each APK is cached locally, uploaded through a temporary `.part` file, verified on the Quest, and committed inside `Download/Quest Homes/Official Library` only after the transfer is complete. An update keeps a temporary backup until the replacement verifies successfully.
 7. Open Quest Home Switcher and select **Refresh**.
 
-The initial v1.5 catalog contains 16 tested Homes. Cascadia, Meta Horizon Terrace, Oceanarium, and Storybook remain visible but unavailable until their individual device tests are complete. Later catalog versions can make a corrected Home available without replacing the setup EXE.
+The current catalog contains 14 tested Homes. Cascadia, Futurescape, Meta Horizon Terrace, Mogu Hall, Oceanarium, and Storybook remain visible but unavailable until their individual device tests are complete. Later catalog versions can make a corrected Home available without replacing the setup EXE.
 
 Homes imported manually remain outside the managed Library folder and are never overwritten or deleted. A user may install the Library variant alongside an older personal copy and remove the personal copy later only if desired.
 
@@ -135,7 +135,7 @@ Do not disconnect power or force-close the app while a Home is being replaced. I
 
 Rooted users do not need Shizuku:
 
-1. Install `Quest-Home-Switcher-v1.5.apk` manually through ADB or a trusted sideloading tool.
+1. Install `Quest-Home-Switcher-v1.8.apk` manually through ADB or a trusted sideloading tool.
 2. Open the app and approve the Magisk/`su` request.
 3. Let the app scan installed environment packages.
 4. Select an environment and apply it.
@@ -148,3 +148,22 @@ The app updates the selected Oculus preference and reloads VR Shell. Root behavi
 - Choose **SET UP / REPAIR** when Shizuku itself also needs diagnosis.
 - A verified running Shizuku server is never restarted or updated by the normal setup flow.
 - Always download the setup or manual APK from this repository's Releases page.
+
+## Linux and macOS CLI preview
+
+Linux and macOS do not run the Windows setup EXE. Download the archive that matches the computer:
+
+- Linux x64: `Quest-Home-Switcher-CLI-v1.8-linux-x64.tar.gz`
+- Apple-silicon Mac: `Quest-Home-Switcher-CLI-v1.8-macos-arm64.tar.gz`
+- Intel Mac: `Quest-Home-Switcher-CLI-v1.8-macos-x64.tar.gz`
+
+Each archive is self-contained and already includes the verified v1.8 APK. Install Android SDK Platform Tools separately, extract the archive, open a terminal in its folder, and run:
+
+```sh
+chmod +x quest-home-switcher install-switcher.sh
+./install-switcher.sh
+```
+
+The CLI verifies that the ADB device is a Meta Quest before installing anything. It does not automatically uninstall a conflicting app and it performs hash-verified, no-clobber Home imports.
+
+This first cross-platform CLI does **not** install, pair, update, or start Shizuku. Unrooted users must already have Shizuku working on the Quest; root users do not need Shizuku. The complete guided first-time Shizuku flow remains Windows-only in v1.8.
