@@ -604,7 +604,8 @@ function Sync-ProjectRelease([scriptblock]$Status) {
             'Accept' = 'application/vnd.github+json'
             'X-GitHub-Api-Version' = '2022-11-28'
         }
-        $releaseSelection = Select-LatestProjectRelease @(Invoke-RestMethod -Uri $script:ProjectReleaseApi -Headers $headers)
+        $projectReleases = Invoke-RestMethod -Uri $script:ProjectReleaseApi -Headers $headers
+        $releaseSelection = Select-LatestProjectRelease $projectReleases
         $release = $releaseSelection.Release
         $versionText = $releaseSelection.VersionText
         $releaseVersion = $releaseSelection.Version
@@ -1275,7 +1276,8 @@ function Sync-OfficialHomeLibraryCatalog([scriptblock]$Status) {
             'Accept' = 'application/vnd.github+json'
             'X-GitHub-Api-Version' = '2022-11-28'
         }
-        $selection = Select-LatestOfficialHomeLibraryRelease @(Invoke-RestMethod -Uri $script:OfficialHomeLibraryReleaseApi -Headers $headers)
+        $libraryReleases = Invoke-RestMethod -Uri $script:OfficialHomeLibraryReleaseApi -Headers $headers
+        $selection = Select-LatestOfficialHomeLibraryRelease $libraryReleases
         $embeddedVersion = ConvertTo-ProjectVersion $embedded.CatalogVersion
         if (-not $embeddedVersion -or $selection.Version.CompareTo($embeddedVersion) -lt 0) {
             throw 'The online Home Library catalog is older than the verified embedded fallback.'
