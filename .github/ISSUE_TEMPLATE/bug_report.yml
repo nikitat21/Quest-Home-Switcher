@@ -1,5 +1,5 @@
 name: Bug report
-description: Report a reproducible problem with Quest Home Switcher or the Windows setup.
+description: Report a reproducible problem with Quest Home Switcher v2.
 title: "[Bug]: "
 labels:
   - bug
@@ -7,18 +7,23 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for helping improve Quest Home Switcher. Please remove serial numbers, account details, signing keys, passwords, and copyrighted Home APKs before attaching anything.
+        Thanks for helping improve QHS. Check docs/TROUBLESHOOTING.md first.
+        Share the error and relevant logs, not credentials or Home APKs.
+        Security-sensitive reports belong in the private security-report route.
 
   - type: dropdown
     id: component
     attributes:
-      label: Affected component
+      label: Affected area
       options:
-        - Quest Home Switcher app
-        - Windows setup
-        - Home APK importer
-        - Shizuku setup flow
-        - Root mode
+        - First setup / Wireless ADB
+        - Root detection or connection
+        - Official Homes
+        - Custom / Community Homes
+        - Manual Home import or removal
+        - Home update
+        - App update
+        - Interface / navigation
         - Other
     validations:
       required: true
@@ -26,9 +31,9 @@ body:
   - type: input
     id: version
     attributes:
-      label: Version
-      description: Enter the app or setup version shown on screen.
-      placeholder: "1.0"
+      label: QHS version
+      description: Include the full version, including any RC suffix.
+      placeholder: "v2 / 2.0.0-rc.…"
     validations:
       required: true
 
@@ -36,27 +41,51 @@ body:
     id: headset
     attributes:
       label: Headset and Horizon OS
-      placeholder: "Quest 3, Horizon OS v..."
+      placeholder: "Quest 3, Horizon OS v…"
     validations:
       required: true
 
   - type: dropdown
     id: access_mode
     attributes:
-      label: Access mode
+      label: Connection path
       options:
-        - Shizuku
-        - Root / Magisk
-        - Neither / setup did not finish
-        - Not applicable
+        - NoRoot / built-in Wireless ADB
+        - Root
+        - Setup has not finished
+        - Unsure
     validations:
       required: true
+
+  - type: dropdown
+    id: install_route
+    attributes:
+      label: How was QHS installed?
+      options:
+        - From a PC with adb install -g (or -r -g)
+        - Directly on Quest / normal APK installer
+        - In-app update
+        - Another route / unsure
+    validations:
+      required: true
+
+  - type: input
+    id: root_solution
+    attributes:
+      label: Root solution, if applicable
+      description: Name/version and whether Root is available after a headset reboot.
+
+  - type: input
+    id: home
+    attributes:
+      label: Affected Home, if applicable
+      description: Name, listing/ID if known, and Official, Community or manually added.
 
   - type: textarea
     id: description
     attributes:
       label: What happened?
-      description: Explain what you expected and what happened instead.
+      description: Include the exact message, what you expected and what happened instead.
     validations:
       required: true
 
@@ -64,32 +93,26 @@ body:
     id: reproduce
     attributes:
       label: Steps to reproduce
+      description: Does it happen after a headset reboot, an app restart, or every time?
       placeholder: |
-        1. Open ...
-        2. Select ...
-        3. Press ...
+        1. Open …
+        2. Select …
+        3. Press …
     validations:
       required: true
 
   - type: textarea
     id: diagnostics
     attributes:
-      label: Diagnostics
-      description: Paste relevant on-screen messages or a short, redacted log. Do not include passwords, keys, account data, device serials, or Home APK files.
-      render: text
-
-  - type: textarea
-    id: additional
-    attributes:
-      label: Additional context
-      description: Add a screenshot or short recording if it helps. Confirm that you have the right to share every attached file.
+      label: Optional diagnostics
+      description: Attach the QHS support text log, screenshot or short recording if useful. See docs/SUPPORT.md. Do not clear logs or reinstall before capturing the problem.
 
   - type: checkboxes
     id: checks
     attributes:
-      label: Final checks
+      label: Before sending
       options:
-        - label: I tested the latest available release.
+        - label: I checked the troubleshooting guide and included my exact app version.
           required: true
-        - label: I removed private data, credentials, signing material, and copyrighted Home APKs from this report.
+        - label: I checked that my attachments contain no credentials or Home APKs.
           required: true

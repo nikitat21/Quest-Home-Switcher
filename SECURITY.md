@@ -1,39 +1,25 @@
-# Security policy
+# Security
 
-Quest Home Switcher performs privileged local operations through Root or Shizuku. Treat reports involving package installation, shell commands, path validation, update integrity, or rollback as security-sensitive.
-
-## Supported version
-
-Only the newest stable release is actively reviewed:
-
-| Version | Supported |
-| --- | --- |
-| 1.0 | Yes |
-| Development builds | No |
+QHS v2 performs privileged local Home operations through its built-in ADB connection or verified Root access. Package installation, command execution, file paths, credentials, update integrity and rollback belong to its security boundary.
 
 ## Reporting a vulnerability
 
-Use **Security -> Report a vulnerability** when vulnerability reporting is available. Otherwise contact the repository owner before sharing exploit details.
+Use **Security → Report a vulnerability** when GitHub private vulnerability reporting is available for the repository. Otherwise contact the repository owner privately before sharing exploit details.
 
-Do not publish a proof of concept, device identifier, personal path, pairing code, password, signing key, keystore, non-redistributable Home APK, or proprietary Meta content in an issue or pull request.
+Include the affected version, Quest model, Horizon OS, Root/NoRoot path, prerequisites and a minimal reproduction. Keep credentials, signing material and unrelated personal data out of issues and attachments.
 
-Please include:
+v2 is being prepared for release; the documentation is public ahead of its downloads. This is not a launch announcement or a guaranteed support period for older builds.
 
-- affected component and version;
-- Root or Shizuku mode;
-- Quest model and Horizon OS version;
-- exact prerequisites and reproduction steps;
-- expected and observed impact; and
-- a minimal sanitized log or test case when possible.
+## Boundaries worth preserving
 
-Allow time for the report to be reproduced and a fix to be prepared before disclosure.
+- A green status requires verified backend access. Root must not be inferred from cached UI or an installed Root-manager app.
+- Downloaded APKs are checked against their trusted metadata before use. App updates also require the expected package identity and signing certificate.
+- Home structure and integrity checks are not a guarantee that a third-party APK is harmless.
+- Automatic pairing is a short-lived Android Settings accessibility session, not unrestricted background input capture. It must clean up its own temporary service enablement.
+- An optional post-pairing settings-permission grant must not turn a working manual ADB connection into a failure.
+- Authenticated private downloads must not leak authorization to untrusted redirect hosts. Never embed private access tokens or signing secrets in an APK.
+- Preserve exact previous artifacts and version-matched diagnostic symbols for recovery. Do not silently change a Root package's identity or certificate.
 
-## Security boundaries
+The app **does use the network** for catalog data, images, Home downloads, updates and private-test authorization. It has no analytics/advertising SDK in the current build. See [privacy and permissions](docs/PRIVACY.md) for the actual data paths.
 
-- The Quest app has no analytics, advertising, account system, or network communication of its own.
-- The Windows setup downloads Platform Tools only from Google and Shizuku only from the official RikkaApps GitHub release source when required.
-- A verified running Shizuku server must be left untouched by setup.
-- Release APK and setup payload hashes are pinned and verified.
-- Release signing keys and passwords must remain offline and outside the repository.
-- Home APKs are user-supplied and outside the project's trust boundary. Validation proves expected structure, not that third-party code is harmless.
-- Root frameworks, Horizon OS, Shizuku, ADB, and third-party Home packages have their own security models and are not maintained by this project.
+Android, Horizon OS, GitHub, Root frameworks, ADB and third-party Homes have their own security models. This project does not control them.

@@ -1,169 +1,134 @@
-# Installation
+# Install Quest Home Switcher v2
 
-The recommended path is the guided Windows setup. It checks the actual state of the connected Quest and only performs the steps that are needed.
+[← Overview](../README.md) · [Get v2](DOWNLOAD.md) · [Help](TROUBLESHOOTING.md)
 
-## Before you begin
+> **Getting ready for v2.** Downloads are not public yet. These instructions apply to the signed `Quest-Home-Switcher-v2.apk` when it is released. [Current download status](DOWNLOAD.md)
 
-You need:
+## Choose your route
 
-- a Meta Quest 2, Quest 3, or Quest Pro;
-- a Windows 10 or 11 PC;
-- a USB data cable;
-- Meta Developer Mode enabled for the headset;
-- the latest setup EXE from the [GitHub Releases page](https://github.com/nikitat21/Quest-Home-Switcher/releases); and
-- compatible Home APKs that you are legally allowed to use, unless you use an available entry from the optional Home Library.
+| Install from a PC · recommended | Install directly on Quest |
+| --- | --- |
+| **Use `adb install -g`.** QHS can attempt automatic Wireless ADB setup from the first launch. | One manual Wireless ADB pairing first. QHS then tries to enable the same setup convenience for later use. |
+| [Start the PC guide ↓](#install-from-a-pc-recommended) | [Start the Quest guide ↓](#install-directly-on-quest) |
 
-Home APKs are not embedded in the setup EXE. The optional Home Library downloads only the entries selected by the user from a separately verified GitHub release.
+Already have working Root? [Read the Root path](#already-rooted). Coming from an older Switcher? [Read the migration guide](MIGRATING-TO-V2.md).
 
-## Recommended setup on an unrooted Quest
+## Install from a PC (recommended)
 
-### 1. Connect and authorize the Quest
+### 1. Get ready
 
-1. Connect the headset to the PC with a USB data cable.
-2. Put on the headset.
-3. Approve **Allow USB debugging**.
-4. On your own PC, enable **Always allow from this computer** so the authorization survives reconnects.
+- A compatible Quest, connected to Wi-Fi. [Compatibility](COMPATIBILITY.md)
+- Meta Developer Mode enabled for the headset, plus an authorized USB data connection.
+- A Windows, macOS or Linux computer with [Google’s Android SDK Platform-Tools](https://developer.android.com/tools/releases/platform-tools).
+- The signed **v2 app APK** from [Get v2](DOWNLOAD.md), not a Home APK or the GitHub source-code ZIP.
 
-The normal storage-access prompt is not the same as USB debugging. If setup cannot detect the Quest, check the headset for the USB debugging prompt.
+Enable headset Developer Mode using [Meta’s current device setup instructions](https://developers.meta.com/horizon/documentation/android-apps/enable-developer-mode/). This Meta account/device step is different from the Android Developer settings that QHS can help open later.
 
-### 2. Start the setup
+### 2. Connect and authorize
 
-1. Download `Quest-Home-Switcher-Setup-v1.8.exe` from the latest final application release. Normal Windows users should download the setup EXE, not the raw APK.
-2. Run the EXE and select **SET UP / REPAIR**.
+Connect the USB cable. Put on the headset and approve **Allow USB debugging** for your own computer. Allowing file access alone is not enough.
 
-The Windows EXE is not Authenticode-signed yet, so Windows may show an **Unknown publisher** or reputation warning. Continue only when the file came from this repository's Releases page. The project does not ask you to disable antivirus protection.
+Open a terminal in the extracted `platform-tools` folder. For a simple first install, put the downloaded APK in that folder too. Then check the connection:
 
-### 3. Let setup detect the current state
+**Windows PowerShell**
 
-Setup distinguishes between these states:
-
-- **Shizuku already running:** it is left completely untouched. Setup installs or updates Quest Home Switcher and opens it.
-- **Shizuku installed but stopped:** setup first tries the starter already included in the installed Shizuku package. If Android still needs user interaction, Shizuku is opened with a clear instruction.
-- **Shizuku missing:** setup starts the one-time Quest-compatible pairing path described below.
-
-### 4. Complete first-time Shizuku pairing only when requested
-
-The first-time flow temporarily installs Shizuku 11.7 because its pairing screen works on the supported Quest firmware. Pairing data is then preserved while setup updates Shizuku in place from the official RikkaApps release.
-
-Inside the headset:
-
-1. In **Wireless debugging**, select **Pair device with pairing code**.
-2. In Shizuku 11.7, select **Pairing**.
-3. Enter the six-digit code shown by Android and wait for the success message.
-4. **Do not press Start in Shizuku 11.7.**
-5. Return to the Windows setup and select **PAIRING COMPLETE - CONTINUE**.
-
-Setup now updates Shizuku without deleting its pairing data and attempts to start it. Follow the on-screen instruction only if Android requests one final action. If Shizuku keeps searching for Wireless debugging, turn the main Wireless debugging switch off, wait three seconds, and turn it on again.
-
-Android deliberately requires the pairing code to be entered by the user. The setup never bypasses this security confirmation.
-
-### 5. Finish the Switcher installation
-
-Setup verifies its embedded APK, installs or updates Quest Home Switcher, verifies the installed version, and opens the app.
-
-When the setup screen says **SETUP COMPLETE**, select **SETUP COMPLETE - CLOSE**. If Android reports that an installed Switcher with the current package ID uses a different signing key, setup shows a detailed confirmation before removing only that conflicting Switcher installation and retrying the verified release. Declining leaves the installed app unchanged. Shizuku, its pairing, and Home files are never removed by this migration.
-
-### 6. Approve the app permission
-
-1. Open Quest Home Switcher.
-2. If the status says that Shizuku permission is missing, approve the Shizuku permission prompt once.
-3. Wait for the status to show **Shizuku connected**.
-
-After a full headset reboot, Shizuku itself must be started again. The Switcher permission normally remains approved.
-
-## Add Home APKs
-
-### Choose from the Official Meta Home Library
-
-1. Connect and authorize the Quest over USB.
-2. Open setup and select **OFFICIAL HOME LIBRARY**. This action does not start, stop, pair, or update Shizuku.
-3. Search or browse the catalog. It shows **Not installed**, **Installed - up to date**, **Update available**, or **Coming soon** for each Home.
-4. Select one or more new or updated Homes and continue. Updates are never installed without this confirmation.
-5. Setup verifies the dedicated Library prerelease, exact asset name, published SHA-256, and file size before downloading.
-6. Each APK is cached locally, uploaded through a temporary `.part` file, verified on the Quest, and committed inside `Download/Quest Homes/Official Library` only after the transfer is complete. An update keeps a temporary backup until the replacement verifies successfully.
-7. Open Quest Home Switcher and select **Refresh**.
-
-The current catalog contains 14 tested Homes. Cascadia, Futurescape, Meta Horizon Terrace, Mogu Hall, Oceanarium, and Storybook remain visible but unavailable until their individual device tests are complete. Later catalog versions can make a corrected Home available without replacing the setup EXE.
-
-Homes imported manually remain outside the managed Library folder and are never overwritten or deleted. A user may install the Library variant alongside an older personal copy and remove the personal copy later only if desired.
-
-### Import from Windows
-
-1. Reopen the setup EXE.
-2. Select **IMPORT HOME APKS**. This action is independent of Shizuku setup.
-3. The picker opens the Quest Home Editor `Cooked` folder when setup can detect it. Otherwise it uses the last location or your Downloads folder.
-4. Select one or more compatible **NoRoot-Spoof Home APKs**.
-5. Review the detected Home names. Edit the permanently highlighted **Name on Quest** field when you want a different display name.
-6. Select **CONTINUE TO IMPORT**. Setup automatically adds `.apk` and removes unsafe filename characters on the same click. It stops only when two selected Homes would have the same name.
-7. Review the result window. It shows clear totals and one status row for every selected file.
-8. Select **DONE**. In the headset, open Quest Home Switcher and select **Refresh**.
-
-Only APKs with a verified `assets/scene.zip` and the expected rootless environment target are accepted. Files are uploaded to:
-
-```text
-/sdcard/Download/Quest Homes
+```powershell
+.\adb.exe devices
 ```
 
-Existing files are not silently replaced. Identical files are skipped; different filename collisions receive a numeric suffix.
+**macOS / Linux**
 
-### Copy manually
-
-Compatible Home APKs can also be copied to any of these folders:
-
-```text
-/sdcard/Download
-/sdcard/Download/Quest Homes
-/sdcard/Quest Homes
-/sdcard/QuestHomes
-/sdcard/Homes
+```sh
+./adb devices
 ```
 
-Subfolders are scanned recursively.
+The Quest must show **`device`**, not `unauthorized` or `offline`. If more than one device/connection is listed, [select the correct one first](TROUBLESHOOTING.md#my-computer-cannot-find-or-authorize-the-quest).
 
-## Apply a Home in Shizuku mode
+### 3. Install — keep the -g
 
-1. Start Shizuku if the headset was rebooted.
-2. Open Quest Home Switcher.
-3. Wait for the Home library scan to finish, or select **Refresh**.
-4. Use search when the library is large.
-5. Select a Home and choose **Apply Home**.
-6. Wait for validation, installation, scene verification, and the Horizon Home reload to finish.
+> [!IMPORTANT]
+> **For the PC route, include `-g`.** A normal APK install can succeed without it, but the first automatic ADB setup will not have its required settings permission.
 
-Do not disconnect power or force-close the app while a Home is being replaced. If activation fails, open the technical details before trying again.
+**Windows PowerShell**
 
-## Root mode
+```powershell
+.\adb.exe install -g Quest-Home-Switcher-v2.apk
+```
 
-Rooted users do not need Shizuku:
+**macOS / Linux**
 
-1. Install `Quest-Home-Switcher-v1.8.apk` manually through ADB or a trusted sideloading tool.
-2. Open the app and approve the Magisk/`su` request.
-3. Let the app scan installed environment packages.
-4. Select an environment and apply it.
+```sh
+./adb install -g Quest-Home-Switcher-v2.apk
+```
 
-The app updates the selected Oculus preference and reloads VR Shell. Root behavior depends on the firmware and root implementation; test carefully and keep a known-good Home available.
+If `adb` is already on your PATH, the short form is:
+
+```sh
+adb install -g Quest-Home-Switcher-v2.apk
+```
+
+Wait for **`Success`**. Use the actual APK filename if it differs; quote a path that contains spaces.
+
+<details>
+<summary>What do -g and -r mean?</summary>
+
+`-g` requests the permissions Android permits this installation path to grant. On the Quest firmware tested with QHS, it grants the declared `WRITE_SECURE_SETTINGS` permission used for automatic setup. It does **not** root the headset, enable Meta Developer Mode for your account or remove Android’s installation confirmations.
+
+`-r` means reinstall/update an existing app while retaining its app data. It is not needed for a clean first install. For a manual update over the same v2 app, use:
+
+```sh
+adb install -r -g Quest-Home-Switcher-v2.apk
+```
+
+Do not uninstall a working RC first just to update it. A different package or signing certificate is not an ordinary update. [Migration details](MIGRATING-TO-V2.md)
+
+References: [Android’s ADB options](https://developer.android.com/tools/adb#pm) and [Meta’s ADB installation guide](https://developers.meta.com/horizon/documentation/spatial-sdk/ts-adb/). QHS-specific permission behavior is based on its tested implementation, not a guarantee for all firmware.
+
+</details>
+
+### 4. Open QHS on the headset
+
+Find **Quest Home Switcher** in your launcher or the Library’s **Unknown Sources** view, depending on Horizon OS.
+
+QHS checks Root first. Without Root, its ADB setup opens when needed and attempts automatic pairing and connection. Keep the headset awake and follow any Android Wi-Fi/system confirmation. A system pairing screen may appear briefly; this is expected.
+
+After a successful connection, setup closes and the **ADB** status turns green. QHS reads your Homes and creates or reuses its Home folders. If automatic setup cannot finish, the app opens the manual instructions rather than pretending it connected.
+
+[Choose your first Home →](HOMES.md#choose-a-library-home)
+
+## Install directly on Quest
+
+No PC `-g` grant is available when an APK is installed through the headset’s normal package installer.
+
+1. Download the signed v2 app APK from the release source and open it with a trusted file manager or launcher that supports APK installation.
+2. Approve Android’s install-source permission if requested, then install and open **Quest Home Switcher**. Keep the Quest connected to Wi-Fi.
+3. Without verified Root access, QHS shows the manual ADB setup. It tries to open **Wireless debugging** directly; if the firmware does not allow that, it opens Android Developer settings instead.
+4. Turn on **Wireless debugging** and allow the current Wi-Fi network if Android asks. Select **Pair device with pairing code**. Keep that system dialog open.
+5. Return to QHS and enter the current six-digit code. Use **Connect** if shown; a complete valid code may be submitted automatically. No IP address or port needs to be typed into QHS.
+6. Once connected, QHS closes setup and attempts to grant its own settings permission through that authenticated local ADB connection. It verifies the result before calling automatic setup enabled.
+
+**You can keep using QHS even if that optional permission grant is refused.** Manual connection remains available. If you deliberately revoke a permission later, QHS does not silently override that decision.
+
+If Android Developer settings cannot be enabled on your firmware, this route may require help from the PC route. It is not a promise that every locked-down device supports a PC-free first setup.
+
+[Manual setup help →](TROUBLESHOOTING.md#automatic-or-manual-adb-setup-does-not-finish)
+
+## Already rooted?
+
+Install the same v2 app APK. QHS does not supply a Root exploit or root the headset.
+
+1. Make sure your existing Root solution provides working `su` access.
+2. Open QHS and approve its Root request if your Root manager requires one.
+3. Wait for the verified **ROOT** status. QHS selects the Root Home variants and reads installed environment packages.
+
+Wireless ADB setup is unnecessary while Root is ready. If Root is not available, QHS can fall back to the NoRoot setup path. Root access, Home verification and download availability are separate checks; cached cards alone do not authorize changes.
+
+Actual Root compatibility depends on the Root solution and firmware. [Current validation limits](COMPATIBILITY.md)
 
 ## Updating later
 
-- Run the newest setup EXE and choose **UPDATE / OPEN SWITCHER** for an ADB-only Switcher update that does not inspect or modify Shizuku.
-- Choose **SET UP / REPAIR** when Shizuku itself also needs diagnosis.
-- A verified running Shizuku server is never restarted or updated by the normal setup flow.
-- Always download the setup or manual APK from this repository's Releases page.
+Use **Check Update** in the app. A verified update is handed to Android’s installer; approve its confirmation. QHS attempts to reopen after completion when the OS permits it.
 
-## Linux and macOS CLI preview
+The public v2 update route will not require GitHub sign-in. Invited RC testers can keep their current installation; the final, higher-version v2 is prepared as an in-place update. An app update does not need to redownload your whole Home Library.
 
-Linux and macOS do not run the Windows setup EXE. Download the archive that matches the computer:
-
-- Linux x64: `Quest-Home-Switcher-CLI-v1.8-linux-x64.tar.gz`
-- Apple-silicon Mac: `Quest-Home-Switcher-CLI-v1.8-macos-arm64.tar.gz`
-- Intel Mac: `Quest-Home-Switcher-CLI-v1.8-macos-x64.tar.gz`
-
-Each archive is self-contained and already includes the verified v1.8 APK. Install Android SDK Platform Tools separately, extract the archive, open a terminal in its folder, and run:
-
-```sh
-chmod +x quest-home-switcher install-switcher.sh
-./install-switcher.sh
-```
-
-The CLI verifies that the ADB device is a Meta Quest before installing anything. It does not automatically uninstall a conflicting app and it performs hash-verified, no-clobber Home imports.
-
-This first cross-platform CLI does **not** install, pair, update, or start Shizuku. Unrooted users must already have Shizuku working on the Quest; root users do not need Shizuku. The complete guided first-time Shizuku flow remains Windows-only in v1.8.
+[What stays when updating or reinstalling? →](MIGRATING-TO-V2.md)

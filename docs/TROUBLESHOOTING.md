@@ -1,122 +1,80 @@
-# Troubleshooting
+# A little help
 
-Start with the status shown by the Windows setup or Quest app. Avoid repeatedly reinstalling Shizuku or Home APKs before the actual state is known.
+[← Overview](../README.md) · [Installation](INSTALLATION.md) · [Send a report](SUPPORT.md)
 
-## The Windows setup cannot find the Quest
+Start with the status QHS shows. Reinstalling the app or repeatedly pairing again is usually not the first step. v2 does not need Shizuku or the old desktop setup tool.
 
-1. Use a USB cable that supports data, not only charging.
-2. Put on the headset and approve **Allow USB debugging**.
-3. Disconnect and reconnect USB after approving the prompt.
-4. In the headset, make sure Meta Developer Mode is enabled for this device.
-5. Close other ADB tools such as SideQuest temporarily, then run setup again.
-6. If several Android devices are connected, disconnect the others during setup.
+## My computer cannot find or authorize the Quest
 
-The storage-access prompt is not USB debugging authorization. Setup needs ADB authorization.
+Run `adb devices` from Android Platform-Tools. In Windows PowerShell, use `.\adb.exe` if that folder is not on PATH.
 
-## Developer options or Wireless debugging does not open correctly
+- **No device:** use a USB data cable, check Meta Developer Mode and reconnect.
+- **`unauthorized`:** put on the headset and approve **Allow USB debugging** for your computer. File access is a different permission.
+- **`offline`:** reconnect USB and check the headset's debugging setting.
+- **More than one entry:** select your Quest explicitly with `adb -s <serial> install -g Quest-Home-Switcher-v2.apk`. Replace `<serial>` with its entry from `adb devices`; do not type the angle brackets.
 
-The setup tries to open Android Developer options and select Wireless debugging automatically. Horizon OS layouts can differ.
+[Return to PC installation →](INSTALLATION.md#install-from-a-pc-recommended)
 
-1. Select **WIRELESS DEBUGGING** in setup again.
-2. If only Developer options opens, scroll to **Wireless debugging** and select it manually.
-3. Enable the main Wireless debugging switch.
-4. For first-time setup, select **Pair device with pairing code**.
+## Automatic or manual ADB setup does not finish
 
-Do not disable Developer options or USB debugging after setup; Android stops Shizuku when either is disabled.
+1. Keep the headset awake and connected to Wi-Fi. Finish any Android confirmation for the current network.
+2. If automatic setup fails, use the manual instructions in QHS. **Android dev settings** tries to open Wireless debugging directly, with a Developer settings fallback.
+3. Enable **Wireless debugging**. Select **Pair device with pairing code** and keep that dialog open.
+4. Enter the current six-digit code in QHS. A code from a closed or expired dialog will not work.
+5. Wait for a verified green **ADB** status. Do not start another pairing attempt while the current one is running.
 
-## Shizuku keeps searching for Wireless debugging
+If you installed directly on Quest, a manual first pairing is expected. After connecting, QHS tries to enable automatic setup for later use. If Android refuses that optional permission, manual pairing still works.
 
-1. Leave Shizuku open.
-2. Open **Wireless debugging**.
-3. Turn the main switch **off**.
-4. Wait three seconds.
-5. Turn it **on** again.
-6. Return to Shizuku and allow a few seconds for discovery.
+If Developer settings opens at the wrong place, select Wireless debugging manually. QHS cannot guarantee identical Android Settings behavior on every Horizon OS version. The [PC route](INSTALLATION.md#install-from-a-pc-recommended) is the fallback when the firmware restricts PC-free setup.
 
-Closing Shizuku is normally unnecessary. If the headset was fully rebooted, Shizuku must be started again.
+A green connection does not need to be paired again just because you opened its status panel. After a headset restart, let QHS recheck the connection before making changes.
 
-## Shizuku asks to pair again
+## Root is not available
 
-Use the guided **SET UP / REPAIR** path rather than uninstalling Shizuku manually.
+QHS requires an existing, working `su` solution. It does not install an exploit.
 
-1. In Wireless debugging, select **Pair device with pairing code**.
-2. In Shizuku 11.7, select **Pairing** and enter the six-digit code.
-3. Do not press Start in 11.7.
-4. Return to setup and select **PAIRING COMPLETE - CONTINUE**.
+Check the Root manager's approval for QHS and whether Root is available after this headset reboot. The green **ROOT** status means QHS verified access; a cached Home card does not. If Root is unavailable, the app can offer NoRoot setup instead.
 
-Setup preserves pairing data while updating Shizuku in place. Uninstalling Shizuku deletes its pairing data and should not be the first troubleshooting step.
+Mention your Root solution and Horizon OS version in a report. A successful test on one Root implementation does not establish compatibility with all of them.
 
-## Quest Home Switcher says Shizuku is offline
+## My Home is missing
 
-1. Confirm that Shizuku itself says it is running.
-2. Return to Quest Home Switcher and select **Refresh** once.
-3. If the state remains offline, reopen the Switcher from setup with **UPDATE / OPEN SWITCHER**.
-4. After a headset reboot, start Shizuku again.
-5. If Shizuku is searching, use the Wireless debugging off/on sequence above.
+For a manually added **NoRoot** Home, check:
 
-The app distinguishes a missing Shizuku app, a stopped server, and missing permission. Follow the exact status instead of reinstalling everything.
+- The complete APK is in **Downloads → Quest Home Switcher → Custom Homes**.
+- It is a compatible, already-converted Home APK, not an old incompatible Home, a Root-only package, or an ordinary Android app.
+- The file finished copying. Return to QHS so its inventory can refresh.
+- The backend is connected. A display cache is not a substitute for a fresh file check.
 
-## The Shizuku permission prompt does not appear
+The scanner deliberately does not search every folder on the headset. Root mode reads installed environment packages; copying a Root APK into Custom Homes does not install it.
 
-1. Make sure the Shizuku server is running first.
-2. Open Quest Home Switcher and select its Shizuku status/action button.
-3. If necessary, open Shizuku and review the authorized applications list for Quest Home Switcher.
-4. Return to the Switcher and select **Refresh**.
+[Folder and import details →](HOMES.md#add-your-own-noroot-home)
 
-The permission is an Android security prompt and cannot be approved automatically by setup.
+## A Community Home cannot be downloaded
 
-## No Home APKs are found
+**Before launch:** the public app and both Libraries are intentionally unavailable. This is not an ADB fault. [Check download status](DOWNLOAD.md).
 
-The scanner does not accept every APK. A valid rootless Home must contain the exact file:
+**With the released public v2 app:** no GitHub sign-in is needed for the Community Library. Invited testers still using a private RC need their existing private-repository access.
 
-```text
-assets/scene.zip
-```
+A catalog search match is not proof that a compatible downloadable APK exists. Availability depends on the selected Root/NoRoot variant and its verified catalog entry. Check the connection, available headset storage and the exact message.
 
-Check that:
+If an existing local Home works but its download does not, report the Library/Home name and download message. Do not reset a healthy ADB connection just to repair an internet download.
 
-- the APK is in `Download`, `Quest Homes`, `QuestHomes`, or `Homes` on the headset;
-- the file finished copying and is still a readable APK/ZIP;
-- the APK is a compatible NoRoot-Spoof Home, not a normal Android application;
-- the app has Shizuku permission; and
-- the scan has finished before refreshing again.
+## Apply, Update or Remove is unavailable or fails
 
-Use **IMPORT HOME APKS** in the Windows setup for the clearest validation result. It rejects incompatible files before uploading them.
+Let a download, verification or current change finish first. A Home must have a valid current selection and the required verified backend before it can be changed.
 
-## A Home shows a filename instead of its real name
+- **Apply:** wait for fresh inventory if access has changed. A very large Home can take longer to verify/install; do not start competing package changes.
+- **Update Home:** new catalog metadata and installed-file checks must complete. Renaming a Home or changing its artwork alone is not an APK update.
+- **Remove:** switch away from an active Custom Home first. Read the confirmation: Root removal uninstalls its environment package; NoRoot removal deletes the selected APK file.
+- **Failure/rollback message:** record the exact text. Do not keep retrying if recovery is unconfirmed. Capture logs and ask for help.
 
-Official names are resolved from the decompressed `assets/scene.zip` hash. A scene that is not in the current catalog falls back to a cleaned filename.
+The system may reload its Home shell during a switch. QHS tries to return to the panel where supported; a shell reload is not by itself proof of an app crash.
 
-This does not mean that the Home is invalid. Rename it in the setup import review for a clearer display name, and include the scene hash in a catalog update request if you can legally share that metadata.
+## An app update does not install or reopen
 
-## Applying a Home fails
+A v2 in-place update needs the same application identity and signing certificate, plus an appropriate newer version. A legacy app or Beta with a different identity is not that same installation.
 
-1. Expand **Technical details** in the Switcher before leaving the screen.
-2. Record whether validation, installation, verification, preference update, or rollback failed.
-3. Do not repeatedly apply the same file when automatic rollback also failed.
-4. Confirm that Shizuku is still running and Wireless debugging is enabled.
-5. Re-import the APK if the copy may be incomplete.
-6. Test with a known-good compatible Home to separate an app problem from an APK problem.
+Follow Android's installer confirmation. QHS attempts to reopen after the update, but Horizon OS may prevent this; open it from your launcher if necessary. A refused signature check is a reason to investigate, not to disable verification or uninstall blindly.
 
-The app attempts to restore the previous Home after a rootless installation or scene-verification failure. A failed rollback needs careful review before another switch.
-
-## The old Switcher cannot be updated
-
-Android cannot update an app in place when the installed copy uses the same package ID but a different signing key. Setup handles this only after Android returns `INSTALL_FAILED_UPDATE_INCOMPATIBLE`.
-
-Read the confirmation carefully. A signing-key migration removes only the conflicting installation of the current Switcher package before retrying the verified release. Declining leaves it installed. The migration does not remove Shizuku, Shizuku pairing, Home APK files, or any other app.
-
-## What to include in a bug report
-
-Include:
-
-- Quest model;
-- Horizon OS version;
-- Quest Home Switcher version;
-- Root or Shizuku mode;
-- whether the issue happens after a headset reboot;
-- exact steps to reproduce;
-- the complete status message; and
-- the Switcher's expanded technical details, with personal paths or device identifiers removed.
-
-Do not attach signing keys, passwords, pairing codes, paid/copyrighted Home APKs, or proprietary Meta content. See [SECURITY.md](../SECURITY.md) for sensitive reports.
+[Migration guide →](MIGRATING-TO-V2.md) · [Optional support logs →](RELEASE-SUPPORT-LOGS.md)

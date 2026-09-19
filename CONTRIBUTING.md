@@ -1,61 +1,29 @@
 # Contributing
 
-Contributions are welcome. Keep changes focused, test them carefully, and respect the ownership of third-party Home content.
+Small, well-tested improvements are welcome. Discuss larger changes first, especially anything affecting Root, ADB, package identities, signing or Library formats. Source visibility does not grant a general license; see [LICENSE.md](LICENSE.md).
 
-## Before starting
+## Work on v2 deliberately
 
-- Open or comment on an issue before a large change.
-- Keep changes focused on one problem.
-- Never commit signing keys, passwords, pairing codes, device identifiers, local user paths, or generated release binaries.
-- Do not commit Quest Home APKs, extracted Meta assets, paid assets without redistribution rights, or other proprietary content.
-- Preserve the state-aware safety behavior: a verified running Shizuku server must not be restarted, downgraded, re-paired, or uninstalled.
+Read [development notes](docs/DEVELOPMENT.md) first. The public branch is a documentation preview while the validated v2 source and downloads remain in private preparation.
 
-## Repository layout
+A documentation change must not trigger an app publication or make draft Library assets public. Larger implementation changes belong in a separate reviewed change, not in the final release staging.
 
-```text
-android-app/       Kotlin/Jetpack Compose Quest application
-windows-setup/     PowerShell/WPF setup and C# launcher
-docs/              User and release documentation
-```
+## Keep the important guarantees
 
-## Android changes
+- Preserve working backend sessions; do not reconnect merely because someone opened a status panel.
+- Treat cached cards as presentation, not authority to install, remove or activate packages.
+- Test Root and NoRoot independently, including transitions, process death, reboot, lost connectivity and partial downloads.
+- Keep user files and previous known-good packages recoverable. Refuse ambiguous paths, identities and stale selections.
+- Verify the UI too: progress, completion, active state, disabled actions, empty results and errors must match the real operation.
+- Keep keys, passwords, tokens, local device information, generated APKs and proprietary Home assets out of source commits.
+- Library metadata edits must preserve stable IDs. Names and artwork can change without changing package identity or forcing every APK to be uploaded again.
 
-Use Java 17 and the included Gradle wrapper:
+## A useful change description
 
-```powershell
-cd android-app
-.\gradlew.bat :app:testDebugUnitTest :app:lintDebug :app:assembleDebug
-```
+Explain the problem, the user-visible difference, any security/recovery impact and the checks actually performed. For device tests, give the Quest model, Horizon OS, installation route and Root solution where applicable.
 
-Add or update unit tests when changing activation, rollback, root, Shizuku, validation, caching, or naming behavior. Keep shell commands bounded by real timeouts and collect both output streams safely.
+Documentation uses simple English and the app's actual labels. Put the recommended path first, with optional technical details below. Avoid promises beyond tested behavior.
 
-## Windows setup changes
+Before a documentation change is published, check relative links and anchors, install commands, light/dark readability and narrow screens. Do not hide required setup behind a collapsed technical section.
 
-The setup must continue to work on stock Windows PowerShell without requiring Android Studio.
-
-```powershell
-cd windows-setup
-powershell -NoProfile -ExecutionPolicy Bypass -File .\QuestHomeSwitcherSetup.ps1 -SelfTest -DistributionRoot .
-```
-
-When building the one-file EXE, use the documented build script and verify that the embedded APK version and SHA-256 pins match the intended signed release. Do not replace the pinned APK with a debug build.
-
-## Pull requests
-
-A pull request should include:
-
-- a short problem statement;
-- the user-visible behavior before and after the change;
-- safety or rollback impact;
-- tests that were run;
-- Quest model, Horizon OS version, and Root/Shizuku mode for device-tested changes; and
-- screenshots only when they contain no personal information.
-
-Keep generated Gradle output, setup EXEs, APKs, local caches, and temporary device files out of commits. Release binaries belong on the matching GitHub Release after signing and verification.
-
-## Documentation style
-
-- Write user-facing documentation in simple English.
-- Use the exact labels shown in the app or setup.
-- Separate required steps from optional troubleshooting.
-- Do not imply that Android security confirmations can or should be bypassed.
+Generated reports, local caches and release binaries do not belong in a documentation commit. Keep legacy tools documented as legacy; do not recommend them as a v2 prerequisite.
