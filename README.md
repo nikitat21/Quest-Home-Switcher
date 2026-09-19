@@ -18,7 +18,7 @@
 
 <p align="center">Need help? Ping <code>@Nikita</code> on Discord — FreeXR or QuestHomes.</p>
 
-<p align="center"><sub>v2 IS COMING · App and Home Library downloads are being prepared.</sub></p>
+<p align="center"><sub>v2 is here · Your next Home is closer.</sub></p>
 
 > [!IMPORTANT]
 > **Installing from a PC? Include `-g`.** It enables the automatic ADB setup path on supported Quest firmware.
@@ -72,7 +72,7 @@ QHS is an **unofficial community project**, not a Meta product. It changes the Q
 
 Made for **Quest 3 / 3S** on compatible Horizon OS firmware; hands-on validation so far is primarily Quest 3. Root and firmware compatibility vary. [Compatibility and limits →](docs/COMPATIBILITY.md)
 
-**v2 has not launched yet.** The app and both Home Libraries are temporarily unavailable while their final files are prepared. The public v2 Library will not need a GitHub sign-in. [Download status →](docs/DOWNLOAD.md)
+**One app. Two Libraries. No GitHub sign-in.** Download the app, complete setup and choose your Homes. [Get v2 →](docs/DOWNLOAD.md)
 
 ## Need a hand?
 

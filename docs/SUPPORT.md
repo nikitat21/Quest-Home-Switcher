@@ -24,7 +24,7 @@ On a Windows PC with an authorized USB debugging connection:
 3. Run **Get-QHS-Logs.cmd**. Android Platform-Tools must be available.
 4. Send the **QHS-Logs-…txt** file from your PC's Downloads folder, with the action and approximate time.
 
-The helper exports only when you run it and uploads nothing. The optional support bundle will be included with the v2 app release. [Full instructions and multiple-device options →](RELEASE-SUPPORT-LOGS.md)
+The helper exports only when you run it and uploads nothing. The optional support bundle is included with the v2 app release. [Full instructions and multiple-device options →](RELEASE-SUPPORT-LOGS.md)
 
 ## Where to report
 

@@ -4,9 +4,9 @@ Small, well-tested improvements are welcome. Discuss larger changes first, espec
 
 ## Work on v2 deliberately
 
-Read [development notes](docs/DEVELOPMENT.md) first. The public branch is a documentation preview while the validated v2 source and downloads remain in private preparation.
+Read [development notes](docs/DEVELOPMENT.md) first. This public repository contains the release downloads, Libraries and user documentation. Implementation work is reviewed separately; contact the maintainer before planning a code contribution.
 
-A documentation change must not trigger an app publication or make draft Library assets public. Larger implementation changes belong in a separate reviewed change, not in the final release staging.
+Keep documentation and software publication separate. Larger implementation changes belong in their own reviewed and tested change.
 
 ## Keep the important guarantees
 

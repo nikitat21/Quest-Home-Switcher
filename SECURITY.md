@@ -8,7 +8,7 @@ Use **Security → Report a vulnerability** when GitHub private vulnerability re
 
 Include the affected version, Quest model, Horizon OS, Root/NoRoot path, prerequisites and a minimal reproduction. Keep credentials, signing material and unrelated personal data out of issues and attachments.
 
-v2 is being prepared for release; the documentation is public ahead of its downloads. This is not a launch announcement or a guaranteed support period for older builds.
+This policy describes v2. It does not promise a guaranteed support period for older builds.
 
 ## Boundaries worth preserving
 

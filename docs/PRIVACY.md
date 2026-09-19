@@ -16,7 +16,7 @@ This describes the current v2 implementation, not the legacy app. QHS has no ana
 
 Network providers can see normal request information, such as the source IP and requested resource. Their own privacy policies apply. Opening an external link uses your browser and the destination's policies.
 
-The public v2 Community Library is configured for access without GitHub sign-in. The app and Libraries are not public yet. Private test builds and retained RC credentials use their separate invited-access route.
+The public v2 Community Library works without GitHub sign-in. Private test builds and retained RC credentials use their separate invited-access route.
 
 ## Automatic setup is not Logcat scraping
 

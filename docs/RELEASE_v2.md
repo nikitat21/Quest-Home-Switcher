@@ -3,7 +3,7 @@
 <p align="center"><strong>Your next Home is closer.</strong><br>A fresh panel, a built-in connection and a whole community to explore.</p>
 <p align="center"><a href="INSTALLATION.md">Installation</a> &nbsp;·&nbsp; <a href="MIGRATING-TO-V2.md">Moving from an older version</a> &nbsp;·&nbsp; <a href="../README.md">Overview</a></p>
 
-> **Ready for a new chapter.** These are the upcoming v2 release notes. App and Library downloads remain hidden until the launch announcement. [Download status](DOWNLOAD.md)
+> **[Get Quest Home Switcher v2 →](DOWNLOAD.md)** · [Installation guide](INSTALLATION.md)
 
 ## A fresh start. Familiar places.
 
@@ -30,7 +30,7 @@ Working Root is detected automatically. Root users get the matching Root Home pa
 
 The Official collection contains **22 Meta Homes**. The Community catalog adds searchable names, pictures and per-Home downloads, while your compatible NoRoot APKs can live in an easy-to-find Custom Homes folder.
 
-Counts follow the usable Library entries rather than a fixed marketing number. The launch catalog is prepared with 250 downloadable Community Homes, each with Root and NoRoot variants. Available entries can change without a new app release. Public Community access will not need a GitHub account.
+Counts follow the usable Library entries rather than a fixed marketing number. The launch catalog contains 250 downloadable Community Homes, each with Root and NoRoot variants. Available entries can change without a new app release. Public Community access does not need a GitHub account.
 
 ### 04 · Updates without the whole download again
 
@@ -60,13 +60,13 @@ Thanks also to [AstroBoy](https://github.com/xAstroBoy), the Home creators and e
 
 **From the older Switcher or Beta:** v2 is a separate app identity. It needs its own first setup; do not uninstall the old app just to make the new APK install. [Migration guide](MIGRATING-TO-V2.md)
 
-**From a v2 RC:** the final app retains the RC package and official signing certificate. It is prepared as a higher-version, in-place update. Keep your RC installed while waiting for the release.
+**From a v2 RC:** the final app retains the RC package and official signing certificate. It is a higher-version, in-place update. Keep your RC installed and use Check Update or a manual reinstall with `-r -g`.
 
 **Compatibility:** Quest 3 / 3S are the v2 target; primary device testing has been on Quest 3. Root and Horizon OS behavior vary. QHS is unofficial, and Home validation cannot prove third-party content harmless. [Limits and known behavior](COMPATIBILITY.md)
 
 <details>
 <summary>Technical version & release status</summary>
 
-The public name is **v2**. Android package/version metadata and signed manifests retain their technical values; the app identity is `app.questhomeswitcher`. The technical release version is `2.0.0`. APK integrity details and the exact download will accompany the approved release; this documentation does not make its draft files public.
+The public name is **v2**. Android package/version metadata and signed manifests retain their technical values; the app identity is `app.questhomeswitcher`. The technical release version is `2.0.0`. The package is `app.questhomeswitcher`, versionCode `200212`. APK checksums and the exact download are included with the [v2 release](https://github.com/nikitat21/Quest-Home-Switcher/releases/tag/v2).
 
 </details>

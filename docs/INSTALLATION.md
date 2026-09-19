@@ -2,7 +2,7 @@
 
 [← Overview](../README.md) · [Get v2](DOWNLOAD.md) · [Help](TROUBLESHOOTING.md)
 
-> **Getting ready for v2.** Downloads are not public yet. These instructions apply to the signed `Quest-Home-Switcher-v2.apk` when it is released. [Current download status](DOWNLOAD.md)
+> Start with the signed **[Quest-Home-Switcher-v2.apk](DOWNLOAD.md)**. The same APK supports Root and NoRoot.
 
 ## Choose your route
 
@@ -129,6 +129,6 @@ Actual Root compatibility depends on the Root solution and firmware. [Current va
 
 Use **Check Update** in the app. A verified update is handed to Android’s installer; approve its confirmation. QHS attempts to reopen after completion when the OS permits it.
 
-The public v2 update route will not require GitHub sign-in. Invited RC testers can keep their current installation; the final, higher-version v2 is prepared as an in-place update. An app update does not need to redownload your whole Home Library.
+The public v2 update route does not require GitHub sign-in. Invited RC testers can keep their current installation; the higher-version v2 release updates it in place. An app update does not need to redownload your whole Home Library.
 
 [What stays when updating or reinstalling? →](MIGRATING-TO-V2.md)

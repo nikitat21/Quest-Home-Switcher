@@ -8,9 +8,9 @@
 | --- | --- |
 | **Older stable app (v1.8)** | v2 installs as a separate app. Complete v2’s own setup; the old Shizuku setup does not become QHS’s local ADB pairing. |
 | **Old v2 Beta** | The Beta and release/RC have different app identities. Install the release/RC separately and set it up once. |
-| **v2 release candidate** | The planned final v2 keeps `app.questhomeswitcher` and its official certificate. A higher, correctly signed version is an ordinary update. No uninstall should be needed. |
+| **v2 release candidate** | The final v2 keeps `app.questhomeswitcher` and its official certificate. A higher, correctly signed version is an ordinary update. No uninstall should be needed. |
 
-The final v2 APK is being prepared and is not publicly downloadable yet. Do not replace an installed RC with an unsigned build, a different signing key or an APK from the GitHub source tree.
+Get the signed app from the [v2 download page](DOWNLOAD.md). Do not replace an installed RC with an unsigned build, a different signing key or an APK from the GitHub source tree.
 
 ## Keep your Homes
 
