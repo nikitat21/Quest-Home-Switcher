@@ -26,7 +26,7 @@ Use the in-app Library for its managed Home variants. A filename, or the fact th
 
 ## What an uninstall removes
 
-Uninstalling QHS removes its private settings, pairing identity, private GitHub session and app-private custom presentation data. Existing shared Home folders are intended to remain; do not treat that as a substitute for your own backup. Reinstalling requires setup again.
+Uninstalling QHS removes its app-private settings, pairing identity and custom presentation data. Existing shared Home folders are intended to remain; do not treat that as a substitute for your own backup. Reinstalling requires setup again.
 
 In Root mode, environment packages installed separately are also separate from the Switcher app. Uninstalling QHS is not the same as removing those packages.
 

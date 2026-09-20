@@ -52,8 +52,6 @@ The scanner deliberately does not search every folder on the headset. Root mode 
 
 ## A Community Home cannot be downloaded
 
-The public v2 app does not need a GitHub sign-in for the Community Library. If you still use an invited private RC, update to the public v2 release; the older private catalog route remains separate.
-
 A catalog search match is not proof that a compatible downloadable APK exists. Availability depends on the selected Root/NoRoot variant and its verified catalog entry. Check the connection, available headset storage and the exact message.
 
 If an existing local Home works but its download does not, report the Library/Home name and download message. Do not reset a healthy ADB connection just to repair an internet download.

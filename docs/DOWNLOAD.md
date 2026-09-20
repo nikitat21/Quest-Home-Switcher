@@ -6,7 +6,7 @@
 
 **[Download Quest Home Switcher v2](https://github.com/nikitat21/Quest-Home-Switcher/releases/download/v2/Quest-Home-Switcher-v2.apk)**
 
-The same signed APK supports **Root and NoRoot**. Complete setup, then choose individual Homes inside the app. Both Libraries work without a GitHub sign-in.
+The same signed APK supports **Root and NoRoot**. Complete setup, then choose Official and Community Homes inside the app. Download only the ones you want.
 
 > [!IMPORTANT]
 > **Installing from a PC? Include `-g`.**
