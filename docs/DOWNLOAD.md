@@ -4,9 +4,9 @@
 
 ## v2 is coming
 
-The new app and both Home Libraries are being prepared for launch. **Downloads are not public yet.** The old releases have been taken out of the download area while the project moves to v2.
+The app and both Home Libraries are being prepared for launch. **Downloads are not public yet.**
 
-There is nothing you need to reinstall now. Invited RC testers can keep their working app.
+You can already read the [installation guide](INSTALLATION.md) and [what's new in v2](RELEASE_v2.md).
 
 ## At launch, one app download
 
@@ -16,7 +16,7 @@ There is nothing you need to reinstall now. Invited RC testers can keep their wo
 | `QHS-Support-Logs.zip` · optional | A small Windows helper for sending a useful error report. Not needed for normal use. |
 | `Source code (zip)` / `Source code (tar.gz)` | Source files, **not** an installable app. |
 
-The Official and Community Libraries are separate downloads inside QHS. Choose the Homes you want; you do not need to download the whole collection. The public v2 Library will work without a GitHub sign-in.
+Choose Official and Community Homes inside QHS and download only the ones you want. The Home Libraries are separate from the app APK.
 
 > [!IMPORTANT]
 > **Installing from a PC? Include `-g`.**

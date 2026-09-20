@@ -129,6 +129,6 @@ Actual Root compatibility depends on the Root solution and firmware. [Current va
 
 Use **Check Update** in the app. A verified update is handed to Android’s installer; approve its confirmation. QHS attempts to reopen after completion when the OS permits it.
 
-The public v2 update route will not require GitHub sign-in. Invited RC testers can keep their current installation; the final, higher-version v2 is prepared as an in-place update. An app update does not need to redownload your whole Home Library.
+An app update does not need to redownload your Home Library. If you already use an older Switcher or a v2 RC, check the migration guide before reinstalling or removing anything.
 
 [What stays when updating or reinstalling? →](MIGRATING-TO-V2.md)

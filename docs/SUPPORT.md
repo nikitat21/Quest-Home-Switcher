@@ -20,7 +20,7 @@ A short video or screenshot can show a UI problem clearly. Share relevant diagno
 On a Windows PC with an authorized USB debugging connection:
 
 1. Reproduce the problem. Do not clear logs or reinstall first.
-2. Extract the QHS support bundle, if supplied with your test/release. Keep its two helper files together.
+2. Extract **QHS-Support-Logs.zip** from the v2 release when available. Keep its two helper files together.
 3. Run **Get-QHS-Logs.cmd**. Android Platform-Tools must be available.
 4. Send the **QHS-Logs-…txt** file from your PC's Downloads folder, with the action and approximate time.
 
@@ -30,6 +30,6 @@ The helper exports only when you run it and uploads nothing. The optional suppor
 
 For help, you can ping `@Nikita` on the **FreeXR** or **QuestHomes** Discord server.
 
-You can also [open a bug report](https://github.com/nikitat21/Quest-Home-Switcher/issues/new?template=bug_report.yml). Invited testers may continue using their private test conversation.
+You can also [open a bug report](https://github.com/nikitat21/Quest-Home-Switcher/issues/new?template=bug_report.yml).
 
 For security-sensitive issues, follow [Security](../SECURITY.md) instead of posting exploit details publicly.

@@ -30,7 +30,7 @@ Working Root is detected automatically. Root users get the matching Root Home pa
 
 The Official collection contains **22 Meta Homes**. The Community catalog adds searchable names, pictures and per-Home downloads, while your compatible NoRoot APKs can live in an easy-to-find Custom Homes folder.
 
-Counts follow the usable Library entries rather than a fixed marketing number. The launch catalog is prepared with 250 downloadable Community Homes, each with Root and NoRoot variants. Available entries can change without a new app release. Public Community access will not need a GitHub account.
+The launch catalog is prepared with **250 downloadable Community Homes**, each with Root and NoRoot variants. New Homes and updates can arrive without a new app release.
 
 ### 04 · Updates without the whole download again
 

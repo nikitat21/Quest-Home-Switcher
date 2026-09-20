@@ -54,8 +54,6 @@ The scanner deliberately does not search every folder on the headset. Root mode 
 
 **Before launch:** the public app and both Libraries are intentionally unavailable. This is not an ADB fault. [Check download status](DOWNLOAD.md).
 
-**With the released public v2 app:** no GitHub sign-in is needed for the Community Library. Invited testers still using a private RC need their existing private-repository access.
-
 A catalog search match is not proof that a compatible downloadable APK exists. Availability depends on the selected Root/NoRoot variant and its verified catalog entry. Check the connection, available headset storage and the exact message.
 
 If an existing local Home works but its download does not, report the Library/Home name and download message. Do not reset a healthy ADB connection just to repair an internet download.

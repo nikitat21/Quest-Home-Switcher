@@ -40,7 +40,7 @@
 
 **Rediscover the classics.** Browse 22 original Meta Homes with their own artwork and descriptions.
 
-**Find something different.** Search and sort the Community catalog, or bring your own compatible NoRoot Home APKs. Personalize names and pictures.
+**Find something different.** Explore 250 Community Homes at launch, with search, sorting and previews. Bring your own compatible NoRoot Home APKs and personalize names and pictures.
 
 **Keep your favorites close.** See what is installed and active. Apply a Home, download an update or remove an unused Custom Home — all in one panel.
 
@@ -72,7 +72,7 @@ QHS is an **unofficial community project**, not a Meta product. It changes the Q
 
 Made for **Quest 2 / 3 / 3S** on compatible Horizon OS firmware; hands-on validation so far is primarily Quest 3. Root and firmware compatibility vary. [Compatibility and limits →](docs/COMPATIBILITY.md)
 
-**v2 has not launched yet.** The app and both Home Libraries are temporarily unavailable while their final files are prepared. The public v2 Library will not need a GitHub sign-in. [Download status →](docs/DOWNLOAD.md)
+**v2 has not launched yet.** The app and both Home Libraries are being prepared. [Download status →](docs/DOWNLOAD.md)
 
 ## Need a hand?
 

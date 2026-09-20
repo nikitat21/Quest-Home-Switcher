@@ -9,7 +9,7 @@
 3. Select a Home. Download it if it is not installed.
 4. Wait for verification, then choose **Apply Home**. **Applying** is progress; **Active** is the confirmed state.
 
-Both Libraries are being prepared for the v2 launch and are not publicly downloadable yet. In the public v2 app, neither Library needs a GitHub sign-in. Invited testers' existing private access is separate.
+Both Libraries are being prepared for the v2 launch and are not publicly downloadable yet. [Download status →](DOWNLOAD.md)
 
 ## Add your own NoRoot Home
 
