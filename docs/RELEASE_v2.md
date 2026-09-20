@@ -62,7 +62,7 @@ Thanks also to [AstroBoy](https://github.com/xAstroBoy), the Home creators and e
 
 **From a v2 RC:** the final app retains the RC package and official signing certificate. It is a higher-version, in-place update. Keep your RC installed and use Check Update or a manual reinstall with `-r -g`.
 
-**Compatibility:** Quest 3 / 3S are the v2 target; primary device testing has been on Quest 3. Root and Horizon OS behavior vary. QHS is unofficial, and Home validation cannot prove third-party content harmless. [Limits and known behavior](COMPATIBILITY.md)
+**Compatibility:** Quest 2 / 3 / 3S are the v2 target; primary device testing has been on Quest 3. Root and Horizon OS behavior vary. QHS is unofficial, and Home validation cannot prove third-party content harmless. [Limits and known behavior](COMPATIBILITY.md)
 
 <details>
 <summary>Technical version & release status</summary>
