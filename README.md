@@ -70,7 +70,7 @@ After setup, find your NoRoot downloads and personal APKs in **Downloads → Que
 
 QHS is an **unofficial community project**, not a Meta product. It changes the Quest Home through privileged local operations. Use compatible files you trust and keep a known-good Home available.
 
-Made for **Quest 3 / 3S** on compatible Horizon OS firmware; hands-on validation so far is primarily Quest 3. Root and firmware compatibility vary. [Compatibility and limits →](docs/COMPATIBILITY.md)
+Made for **Quest 2 / 3 / 3S** on compatible Horizon OS firmware; hands-on validation so far is primarily Quest 3. Root and firmware compatibility vary. [Compatibility and limits →](docs/COMPATIBILITY.md)
 
 **v2 has not launched yet.** The app and both Home Libraries are temporarily unavailable while their final files are prepared. The public v2 Library will not need a GitHub sign-in. [Download status →](docs/DOWNLOAD.md)
 

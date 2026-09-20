@@ -6,8 +6,8 @@
 
 | Area | Current position |
 | --- | --- |
-| Headsets | v2 targets Quest 3 / 3S. Primary hands-on testing has been on Quest 3; do not read this as separate 3S certification. |
-| Quest 2 / Quest Pro | Not part of the current v2 acceptance claim. Historical documentation is not proof of v2 compatibility. |
+| Headsets | v2 targets Quest 2 / 3 / 3S on compatible Horizon OS firmware. Primary hands-on testing has been on Quest 3; Quest 2 and 3S have not been separately validated. |
+| Quest Pro | Not part of the current v2 acceptance claim. Historical documentation is not proof of v2 compatibility. |
 | Horizon OS | Home/package behavior changes with firmware. Use the current release notes and report your exact OS version with a problem. |
 | NoRoot | Built-in local Wireless ADB; no Shizuku requirement for v2. Setup still depends on permissions and system UI support. |
 | Root | Working `su` and a compatible Root solution are required. Root improvements have been tested with Lumi; this is not a guarantee for every exploit or firmware. |
