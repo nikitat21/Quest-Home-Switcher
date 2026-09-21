@@ -3,7 +3,7 @@
 <p align="center"><strong>Your next Home is closer.</strong><br>A fresh panel, a built-in connection and a whole community to explore.</p>
 <p align="center"><a href="INSTALLATION.md">Installation</a> &nbsp;·&nbsp; <a href="MIGRATING-TO-V2.md">Moving from an older version</a> &nbsp;·&nbsp; <a href="../README.md">Overview</a></p>
 
-> **Latest: [v2.1 reliability update →](RELEASE_v2.1.md)** · [Download](DOWNLOAD.md) · [Installation guide](INSTALLATION.md)
+> **Latest: [v2.1.1 Home-switching fix →](RELEASE_v2.1.1.md)** · [Download](DOWNLOAD.md) · [Installation guide](INSTALLATION.md)
 
 ## A fresh start. Familiar places.
 
@@ -22,7 +22,7 @@ Working Root is detected automatically. Root users get the matching Root Home pa
 > [!IMPORTANT]
 > **Installing from a PC? Keep the `-g`.**
 >
-> `adb install -g Quest-Home-Switcher-v2.1.apk`
+> `adb install -g Quest-Home-Switcher-v2.1.1.apk`
 >
 > [The short installation guide →](INSTALLATION.md)
 

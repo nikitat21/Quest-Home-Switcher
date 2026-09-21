@@ -11,7 +11,7 @@ Run `adb devices` from Android Platform-Tools. In Windows PowerShell, use `.\adb
 - **No device:** use a USB data cable, check Meta Developer Mode and reconnect.
 - **`unauthorized`:** put on the headset and approve **Allow USB debugging** for your computer. File access is a different permission.
 - **`offline`:** reconnect USB and check the headset's debugging setting.
-- **More than one entry:** select your Quest explicitly with `adb -s <serial> install -g Quest-Home-Switcher-v2.1.apk`. Replace `<serial>` with its entry from `adb devices`; do not type the angle brackets.
+- **More than one entry:** select your Quest explicitly with `adb -s <serial> install -g Quest-Home-Switcher-v2.1.1.apk`. Replace `<serial>` with its entry from `adb devices`; do not type the angle brackets.
 
 [Return to PC installation →](INSTALLATION.md#install-from-a-pc-recommended)
 
@@ -61,6 +61,7 @@ If an existing local Home works but its download does not, report the Library/Ho
 Let a download, verification or current change finish first. A Home must have a valid current selection and the required verified backend before it can be changed.
 
 - **Apply:** wait for fresh inventory if access has changed. A very large Home can take longer to verify/install; do not start competing package changes.
+- **Older Home version / `INSTALL_VERSION_DOWNGRADE`:** update QHS first. v2.1.1 adds guarded replacement for this conflict in NoRoot mode. If safe replacement is refused, keep the exact error and ask for help; do not manually delete Haven or reset a healthy ADB connection.
 - **Update Home:** new catalog metadata and installed-file checks must complete. Renaming a Home or changing its artwork alone is not an APK update.
 - **Remove:** switch away from an active Custom Home first. Read the confirmation: Root removal uninstalls its environment package; NoRoot removal deletes the selected APK file.
 - **Failure/rollback message:** record the exact text. Do not keep retrying if recovery is unconfirmed. Capture logs and ask for help.

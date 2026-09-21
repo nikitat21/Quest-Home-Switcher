@@ -1,8 +1,8 @@
 # Install Quest Home Switcher v2
 
-[← Overview](../README.md) · [Get v2.1](DOWNLOAD.md) · [Help](TROUBLESHOOTING.md)
+[← Overview](../README.md) · [Get v2.1.1](DOWNLOAD.md) · [Help](TROUBLESHOOTING.md)
 
-> Start with the signed **[Quest-Home-Switcher-v2.1.apk](DOWNLOAD.md)**. The same APK supports Root and NoRoot.
+> Start with the signed **[Quest-Home-Switcher-v2.1.1.apk](DOWNLOAD.md)**. The same APK supports Root and NoRoot.
 
 ## Choose your route
 
@@ -52,19 +52,19 @@ The Quest must show **`device`**, not `unauthorized` or `offline`. If more than 
 **Windows PowerShell**
 
 ```powershell
-.\adb.exe install -g Quest-Home-Switcher-v2.1.apk
+.\adb.exe install -g Quest-Home-Switcher-v2.1.1.apk
 ```
 
 **macOS / Linux**
 
 ```sh
-./adb install -g Quest-Home-Switcher-v2.1.apk
+./adb install -g Quest-Home-Switcher-v2.1.1.apk
 ```
 
 If `adb` is already on your PATH, the short form is:
 
 ```sh
-adb install -g Quest-Home-Switcher-v2.1.apk
+adb install -g Quest-Home-Switcher-v2.1.1.apk
 ```
 
 Wait for **`Success`**. Use the actual APK filename if it differs; quote a path that contains spaces.
@@ -77,7 +77,7 @@ Wait for **`Success`**. Use the actual APK filename if it differs; quote a path 
 `-r` means reinstall/update an existing app while retaining its app data. It is not needed for a clean first install. For a manual update over the same v2 app, use:
 
 ```sh
-adb install -r -g Quest-Home-Switcher-v2.1.apk
+adb install -r -g Quest-Home-Switcher-v2.1.1.apk
 ```
 
 Do not uninstall a working RC first just to update it. A different package or signing certificate is not an ordinary update. [Migration details](MIGRATING-TO-V2.md)

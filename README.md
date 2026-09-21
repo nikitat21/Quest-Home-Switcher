@@ -2,7 +2,7 @@
   <img src="docs/images/app-icon.png" alt="Quest Home Switcher" width="88" height="88">
 </p>
 
-<h1 align="center">Quest Home Switcher · v2.1</h1>
+<h1 align="center">Quest Home Switcher · v2.1.1</h1>
 
 <p align="center">
   <strong>A different place to call Home.</strong><br>
@@ -10,20 +10,20 @@
 </p>
 
 <p align="center">
-  <a href="docs/DOWNLOAD.md"><strong>Get v2.1</strong></a> &nbsp;·&nbsp;
+  <a href="docs/DOWNLOAD.md"><strong>Get v2.1.1</strong></a> &nbsp;·&nbsp;
   <a href="docs/INSTALLATION.md">Installation</a> &nbsp;·&nbsp;
-  <a href="docs/RELEASE_v2.1.md">What’s new</a> &nbsp;·&nbsp;
+  <a href="docs/RELEASE_v2.1.1.md">What’s new</a> &nbsp;·&nbsp;
   <a href="docs/TROUBLESHOOTING.md">Help</a>
 </p>
 
 <p align="center">Need help? Ping <code>@Nikita</code> on Discord — FreeXR or QuestHomes.</p>
 
-<p align="center"><sub>v2 is here · v2.1 brings a small reliability update.</sub></p>
+<p align="center"><sub>v2 is here · v2.1.1 fixes a Home-switching version conflict.</sub></p>
 
 > [!IMPORTANT]
 > **Installing from a PC? Include `-g`.** It enables the automatic ADB setup path on supported Quest firmware.
 >
-> `adb install -g Quest-Home-Switcher-v2.1.apk`
+> `adb install -g Quest-Home-Switcher-v2.1.1.apk`
 >
 > [PC installation, step by step →](docs/INSTALLATION.md#install-from-a-pc-recommended) · [Installing directly on Quest instead? →](docs/INSTALLATION.md#install-directly-on-quest)
 
@@ -72,7 +72,7 @@ QHS is an **unofficial community project**, not a Meta product. It changes the Q
 
 Made for **Quest 2 / 3 / 3S** on compatible Horizon OS firmware; hands-on validation so far is primarily Quest 3. Root and firmware compatibility vary. [Compatibility and limits →](docs/COMPATIBILITY.md)
 
-**One app. Two Libraries.** Download the app, complete setup and choose your Homes. [Get v2.1 →](docs/DOWNLOAD.md)
+**One app. Two Libraries.** Download the app, complete setup and choose your Homes. [Get v2.1.1 →](docs/DOWNLOAD.md)
 
 ## Need a hand?
 
