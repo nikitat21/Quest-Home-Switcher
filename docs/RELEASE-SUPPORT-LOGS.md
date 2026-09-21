@@ -8,7 +8,7 @@ Normal use needs no diagnostic overlay or extra settings. QHS writes operation e
 
 1. Reproduce the problem. **Do not clear logs or reinstall first.**
 2. Connect the Quest by USB and authorize USB debugging.
-3. Extract **QHS-Support-Logs.zip** from the v2 release. Keep its helper files together.
+3. Extract **[QHS-Support-Logs.zip](DOWNLOAD.md#optional-files)** from the current release. Keep its helper files together.
 4. Double-click **Get-QHS-Logs.cmd**.
 5. Send **QHS-Logs-…txt** from your PC’s Downloads folder, plus the action and approximate time.
 

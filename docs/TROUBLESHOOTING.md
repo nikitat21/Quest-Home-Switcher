@@ -11,7 +11,7 @@ Run `adb devices` from Android Platform-Tools. In Windows PowerShell, use `.\adb
 - **No device:** use a USB data cable, check Meta Developer Mode and reconnect.
 - **`unauthorized`:** put on the headset and approve **Allow USB debugging** for your computer. File access is a different permission.
 - **`offline`:** reconnect USB and check the headset's debugging setting.
-- **More than one entry:** select your Quest explicitly with `adb -s <serial> install -g Quest-Home-Switcher-v2.apk`. Replace `<serial>` with its entry from `adb devices`; do not type the angle brackets.
+- **More than one entry:** select your Quest explicitly with `adb -s <serial> install -g Quest-Home-Switcher-v2.1.apk`. Replace `<serial>` with its entry from `adb devices`; do not type the angle brackets.
 
 [Return to PC installation →](INSTALLATION.md#install-from-a-pc-recommended)
 
