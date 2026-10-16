@@ -2,7 +2,7 @@
   <img src="docs/images/app-icon.png" alt="Quest Home Switcher" width="88" height="88">
 </p>
 
-<h1 align="center">Quest Home Switcher · v2.1.5</h1>
+<h1 align="center">Quest Home Switcher · v2.1.6</h1>
 
 <p align="center">
   <strong>A different place to call Home.</strong><br>
@@ -10,20 +10,20 @@
 </p>
 
 <p align="center">
-  <a href="docs/DOWNLOAD.md"><strong>Get v2.1.5</strong></a> &nbsp;·&nbsp;
+  <a href="docs/DOWNLOAD.md"><strong>Get v2.1.6</strong></a> &nbsp;·&nbsp;
   <a href="docs/INSTALLATION.md">Installation</a> &nbsp;·&nbsp;
-  <a href="docs/RELEASE_v2.1.5.md">What’s new</a> &nbsp;·&nbsp;
+  <a href="docs/RELEASE_v2.1.6.md">What’s new</a> &nbsp;·&nbsp;
   <a href="docs/TROUBLESHOOTING.md">Help</a>
 </p>
 
 <p align="center">Need help? Ping <code>@Nikita</code> on Discord — FreeXR or QuestHomes.</p>
 
-<p align="center"><sub>v2.1.5 · Visual Boost, Restore Haven and automatic update notices.</sub></p>
+<p align="center"><sub>v2.1.6 · A Library shortcut, refreshed Official Homes and safer Home updates.</sub></p>
 
 > [!IMPORTANT]
 > **Installing from a PC? Include `-g`.** It enables the automatic ADB setup path on supported Quest firmware.
 >
-> `adb install -g Quest-Home-Switcher-2.1.5.apk`
+> `adb install -g Quest-Home-Switcher-2.1.6.apk`
 >
 > [PC installation, step by step →](docs/INSTALLATION.md#install-from-a-pc-recommended) · [Installing directly on Quest instead? →](docs/INSTALLATION.md#install-directly-on-quest)
 
@@ -43,6 +43,8 @@
 **Find something different.** Explore 250 Community Homes at launch, with search, sorting and previews. Bring your own compatible NoRoot Home APKs and personalize names and pictures.
 
 **Keep your favorites close.** See what is installed and active. Apply a Home, download an update or remove an unused Custom Home — all in one panel.
+
+**Open QHS from your Quest Library.** Add an optional browser shortcut from **Home tools**. It opens a compact launcher for the installed app.
 
 Built-in Wireless ADB means **no Shizuku setup**. Working Root is detected automatically, with the matching Home variants. App and Home updates are independent, with integrity checks before installation.
 
@@ -72,7 +74,7 @@ QHS is an **unofficial community project**, not a Meta product. It changes the Q
 
 Made for **Quest 2 / 3 / 3S** on compatible Horizon OS firmware; hands-on validation so far is primarily Quest 3. Root and firmware compatibility vary. [Compatibility and limits →](docs/COMPATIBILITY.md)
 
-**One app. Two Libraries.** Download the app, complete setup and choose your Homes. [Get v2.1.5 →](docs/DOWNLOAD.md)
+**One app. Two Libraries.** Download the app, complete setup and choose your Homes. [Get v2.1.6 →](docs/DOWNLOAD.md)
 
 ## Need a hand?
 

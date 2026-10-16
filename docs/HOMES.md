@@ -48,6 +48,14 @@ The app checks file size and SHA-256, including selected-file checks when two ve
 
 Leave the app to finish. A failed check or interrupted transfer must not be treated as a completed update.
 
+In v2.1.6, an Official Home with an update also offers **Apply installed** when it is not already active. You can keep using the verified downloaded version without updating first. Actions remain unavailable while another Home operation is running.
+
+The last authenticated Official catalog is retained across app restarts. An offline or incomplete refresh does not deliberately replace it with an older bundled catalog. New downloads still need an internet connection.
+
+## Add a Quest Library shortcut
+
+Open **Home tools → Library shortcut** and follow the short guide in Meta Browser. Use the browser menu to add the shortcut to your Library. After setup, the Library tile opens a compact **Open QHS** page which launches the installed app. It is a browser shortcut, not a Meta Store listing; the original app remains installed normally.
+
 ## Remove a Custom Home
 
 Switch to a different Home first, then select the unused Custom Home and choose **Remove**. Read the confirmation: in NoRoot mode it removes the stored Home file; in Root mode it removes the eligible installed environment package. Official/system package protections remain in place.

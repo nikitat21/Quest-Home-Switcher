@@ -9,6 +9,7 @@
 | Headsets | v2 targets Quest 2 / 3 / 3S on compatible Horizon OS firmware. Primary hands-on testing has been on Quest 3; Quest 2 and 3S have not been separately validated. |
 | Quest Pro | Not part of the current v2 acceptance claim. Historical documentation is not proof of v2 compatibility. |
 | Horizon OS | Home/package behavior changes with firmware. Use the current release notes and report your exact OS version with a problem. |
+| Horizon OS v2.9 / VrShell 209 | v2.1.6 includes an experimental NoRoot Haven adapter. Controlled emulator and local structural checks passed; physical v209 hardware validation is still outstanding. The existing v207 and Root paths remain separate. |
 | NoRoot | Built-in local Wireless ADB; no Shizuku requirement for v2. Setup still depends on permissions and system UI support. |
 | Root | Working `su` and a compatible Root solution are required. Root improvements have been tested with Lumi; this is not a guarantee for every exploit or firmware. |
 | Home files | Must be compatible with the current Home system. Merely containing a scene or having an `.apk` extension is not a universal compatibility/safety guarantee. |
