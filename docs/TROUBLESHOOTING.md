@@ -11,7 +11,7 @@ Run `adb devices` from Android Platform-Tools. In Windows PowerShell, use `.\adb
 - **No device:** use a USB data cable, check Meta Developer Mode and reconnect.
 - **`unauthorized`:** put on the headset and approve **Allow USB debugging** for your computer. File access is a different permission.
 - **`offline`:** reconnect USB and check the headset's debugging setting.
-- **More than one entry:** select your Quest explicitly with `adb -s <serial> install -g Quest-Home-Switcher-2.1.5.apk`. Replace `<serial>` with its entry from `adb devices`; do not type the angle brackets.
+- **More than one entry:** select your Quest explicitly with `adb -s <serial> install -g Quest-Home-Switcher-2.1.7.apk`. Replace `<serial>` with its entry from `adb devices`; do not type the angle brackets.
 
 [Return to PC installation →](INSTALLATION.md#install-from-a-pc-recommended)
 
@@ -28,6 +28,8 @@ If you installed directly on Quest, a manual first pairing is expected. After co
 If Developer settings opens at the wrong place, select Wireless debugging manually. QHS cannot guarantee identical Android Settings behavior on every Horizon OS version. The [PC route](INSTALLATION.md#install-from-a-pc-recommended) is the fallback when the firmware restricts PC-free setup.
 
 A green connection does not need to be paired again just because you opened its status panel. After a headset restart, let QHS recheck the connection before making changes.
+
+If Android pauses the setup service, return to the QHS setup window and tap **Retry setup**. You do not need to uninstall the app or delete its pairing key.
 
 ## Root is not available
 
@@ -60,6 +62,7 @@ If an existing local Home works but its download does not, report the Library/Ho
 
 Let a download, verification or current change finish first. A Home must have a valid current selection and the required verified backend before it can be changed.
 
+- **Quest 2 on Horizon OS v2.9 / VrShell 209:** update to **v2.1.7**, then apply the Home again. If its card still says Active despite a fallback scene, choose a different Home first and then return. This fix does not require re-downloading the Library.
 - **Apply:** wait for fresh inventory if access has changed. A very large Home can take longer to verify/install; do not start competing package changes.
 - **Older Home version / `INSTALL_VERSION_DOWNGRADE`:** update QHS first. v2.1.1 adds guarded replacement for this conflict in NoRoot mode. If safe replacement is refused, keep the exact error and ask for help; do not manually delete Haven or reset a healthy ADB connection.
 - **Update Home:** new catalog metadata and installed-file checks must complete. Renaming a Home or changing its artwork alone is not an APK update.
