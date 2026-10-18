@@ -4,6 +4,7 @@
 
 - **Quest 2 on Horizon OS v2.9:** fixes the NoRoot scene connection that could leave you in the default environment or show only parts of Calming instead of the selected Home.
 - **More resilient ADB setup:** waits for the connection service before opening Android Settings and handles Android background-start refusals without crashing. Automatic setup and manual code entry keep their existing security checks.
+- **Clearer Home updates:** keeps Updating or Verifying visible after the download reaches 100%, until the new Home is checked and added to the library. Update Home no longer briefly reappears during that step.
 - **No Library re-download needed:** your Home files, pairing and app data stay in place. Root and the existing v207 switching path are unchanged.
 
 **Already using QHS?** Update in the app, then apply the Home again. If a previously failed Home still says Active, choose another Home first, then return. This is an app fix; the Official and Community Libraries are unchanged.
