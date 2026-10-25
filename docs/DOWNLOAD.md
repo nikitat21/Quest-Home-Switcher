@@ -1,10 +1,10 @@
-# Get Quest Home Switcher v2.2
+# Get Quest Home Switcher v2.3
 
-[← Overview](../README.md) · [Installation](INSTALLATION.md) · [What’s new](RELEASE_v2.2.md)
+[← Overview](../README.md) · [Installation](INSTALLATION.md) · [What’s new](RELEASE_v2.3.md)
 
 ## One app. Your next Home.
 
-**[Download Quest Home Switcher v2.2](https://github.com/nikitat21/Quest-Home-Switcher/releases/download/v2.2.0/Quest-Home-Switcher-2.2.0.apk)**
+**[Download Quest Home Switcher v2.3](https://github.com/nikitat21/Quest-Home-Switcher/releases/download/v2.3.0/Quest-Home-Switcher-2.3.0.apk)**
 
 The same signed APK supports **Root and NoRoot**. Complete setup, then choose Official and Community Homes inside the app. Download only the ones you want.
 
@@ -13,7 +13,7 @@ The APK is approximately **138 MiB**. It includes the verified original Haven fi
 > [!IMPORTANT]
 > **Installing from a PC? Include `-g`.**
 >
-> `adb install -g Quest-Home-Switcher-2.2.0.apk`
+> `adb install -g Quest-Home-Switcher-2.3.0.apk`
 >
 > [PC installation →](INSTALLATION.md#install-from-a-pc-recommended) · [Directly on Quest →](INSTALLATION.md#install-directly-on-quest)
 
@@ -23,11 +23,11 @@ Already using v2 or a v2 RC? Use **Check Update**, or manually install over it w
 
 | File | What it is |
 | --- | --- |
-| [QHS-Support-Logs.zip](https://github.com/nikitat21/Quest-Home-Switcher/releases/download/v2.2.0/QHS-Support-Logs.zip) | Windows helper for sending an error report. Not needed for normal use. |
-| [SHA256SUMS.txt](https://github.com/nikitat21/Quest-Home-Switcher/releases/download/v2.2.0/SHA256SUMS.txt) | Checksums for the release downloads. |
+| [QHS-Support-Logs.zip](https://github.com/nikitat21/Quest-Home-Switcher/releases/download/v2.3.0/QHS-Support-Logs.zip) | Windows helper for sending an error report. Not needed for normal use. |
+| [SHA256SUMS.txt](https://github.com/nikitat21/Quest-Home-Switcher/releases/download/v2.3.0/SHA256SUMS.txt) | Checksums for the release downloads. |
 | GitHub’s `Source code` ZIPs | Repository snapshots, **not** an installable app. |
 
-[Release notes and all app assets →](https://github.com/nikitat21/Quest-Home-Switcher/releases/tag/v2.2.0)
+[Release notes and all app assets →](https://github.com/nikitat21/Quest-Home-Switcher/releases/tag/v2.3.0)
 
 The Official and Community Library releases contain Home files, not the Switcher app. Use the in-app Library to get the matching variant.
 

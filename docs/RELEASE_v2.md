@@ -3,7 +3,7 @@
 <p align="center"><strong>Your next Home is closer.</strong><br>A fresh panel, a built-in connection and a whole community to explore.</p>
 <p align="center"><a href="INSTALLATION.md">Installation</a> &nbsp;·&nbsp; <a href="MIGRATING-TO-V2.md">Moving from an older version</a> &nbsp;·&nbsp; <a href="../README.md">Overview</a></p>
 
-> **Latest: [v2.2 · A fresh look →](RELEASE_v2.2.md)** · [Download](DOWNLOAD.md) · [Installation guide](INSTALLATION.md)
+> **Latest: [v2.3 · A little seasonal atmosphere →](RELEASE_v2.3.md)** · [Download](DOWNLOAD.md) · [Installation guide](INSTALLATION.md)
 
 ## A fresh start. Familiar places.
 
