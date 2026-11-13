@@ -1,6 +1,6 @@
 # Your own atmosphere
 
-[← Overview](../README.md) · [What’s new](RELEASE_v2.3.md) · [Help](SUPPORT.md)
+[← Overview](../README.md) · [What’s new](RELEASE_v2.3.1.md) · [Help](SUPPORT.md)
 
 Open **Appearance** at the top of the app. Changes are visible immediately and saved for your next visit.
 
